@@ -56,6 +56,7 @@ using namespace std;
 // GlyphTexture
 //
 GlyphTexture::GlyphTexture():
+    _shaderTechnique(GREYSCALE),
     _usedY(0),
     _partUsedX(0),
     _partUsedY(0)
@@ -88,7 +89,7 @@ int GlyphTexture::getTexelMargin(const Glyph* glyph)
     int height = glyph->t();
     int effect_margin = getEffectMargin(glyph);
 
-    int max_dimension = std::max(width, height) + 2 * effect_margin;
+    int max_dimension = osg::maximum(width, height) + 2 * effect_margin;
     int margin = osg::maximum(max_dimension/4, 2) + effect_margin;
 
     return margin;
@@ -167,7 +168,7 @@ void GlyphTexture::addGlyph(Glyph* glyph, int posX, int posY)
 
     glyph->setTextureInfo(_shaderTechnique, info.get());
 
-    copyGlyphImage(glyph, info);
+    copyGlyphImage(glyph, info.get());
 }
 
 void GlyphTexture::copyGlyphImage(Glyph* glyph, Glyph::TextureInfo* info)
