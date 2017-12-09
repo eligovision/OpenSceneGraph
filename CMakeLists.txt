@@ -3,8 +3,8 @@
 #
 SET(OPENSCENEGRAPH_MAJOR_VERSION 3)
 SET(OPENSCENEGRAPH_MINOR_VERSION 5)
-SET(OPENSCENEGRAPH_PATCH_VERSION 9)
-SET(OPENSCENEGRAPH_SOVERSION 152)
+SET(OPENSCENEGRAPH_PATCH_VERSION 10)
+SET(OPENSCENEGRAPH_SOVERSION 153)
 
 
 # set to 0 when not a release candidate, non zero means that any generated
@@ -344,6 +344,10 @@ ENDIF()
 
 
 IF(WIN32 AND NOT ANDROID)
+    # Check window version
+    INCLUDE (OsgDetermineWinVersion)
+    get_WIN32_WINNT(WIN_VERSION)
+    ADD_DEFINITIONS(-D_WIN32_WINNT=${WIN_VERSION})
 
     IF(MSVC)
         # This option is to enable the /MP switch for Visual Studio 2005 and above compilers
