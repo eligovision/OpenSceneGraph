@@ -9,13 +9,10 @@
 #if OSG_GLES1_FEATURES
     #import <OpenGLES/ES1/glext.h>
 #else
-
-    #define MUTLI_GLES (OSG_GLES2_FEATURES && OSG_GLES3_FEATURES)
-
-    #if OSG_GLES2_FEATURES || MUTLI_GLES
+    #if OSG_GLES2_FEATURES
         #import <OpenGLES/ES2/glext.h>
     #endif
-    #if OSG_GLES3_FEATURES || MUTLI_GLES
+    #if OSG_GLES3_FEATURES
         #import <OpenGLES/ES3/glext.h>
     #endif
 
@@ -44,10 +41,10 @@
 
     #define GL_RGB5_A1_OES GL_RGB5_A1
 
-    #if OSG_GLES3_FEATURES && !MUTLI_GLES
+    #if OSG_GLES3_FEATURES && !OSG_GLES2_FEATURES
         #define glRenderbufferStorageMultisampleAPPLE glRenderbufferStorageMultisample
         #define glDiscardFramebufferEXT glInvalidateFramebuffer
-        //#define glResolveMultisampleFramebufferAPPLE glResolveMultisampleFramebuffer
+        #define glResolveMultisampleFramebufferAPPLE glResolveMultisampleFramebuffer
 
         #define GL_DEPTH24_STENCIL8_OES GL_DEPTH24_STENCIL8
         #define GL_DEPTH_COMPONENT24_OES GL_DEPTH_COMPONENT24
@@ -56,6 +53,7 @@
     #endif
 
 #endif
+
 
 #include "IOSUtils.h"
 
@@ -449,9 +447,17 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
         glBindFramebufferOES(GL_FRAMEBUFFER_OES, _msaaFramebuffer);
         glBindRenderbufferOES(GL_RENDERBUFFER_OES, _msaaRenderBuffer);
 
-        // Samples is the amount of pixels the MSAA buffer uses to make one pixel on the render // buffer. Use a small number like 2 for the 3G and below and 4 or more for newer models
+        // Samples is the amount of pixels the MSAA buffer uses to make one pixel on the render
+        // buffer. Use a small number like 2 for the 3G and below and 4 or more for newer models
+        // NOTE: Formats of draw and read buffers must be identical
 
-        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES, _win->getTraits()->samples, GL_RGB5_A1_OES, _backingWidth, _backingHeight);
+        GLenum internalFormat = GL_RGB5_A1_OES;
+#   if OSG_GLES3_FEATURES
+        if ([_context API] == kEAGLRenderingAPIOpenGLES3)
+            internalFormat = GL_RGBA8_OES;
+#   endif
+
+        glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES, _win->getTraits()->samples, internalFormat, _backingWidth, _backingHeight);
 
         glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, _msaaRenderBuffer);
         glGenRenderbuffersOES(1, &_msaaDepthBuffer);
@@ -524,65 +530,68 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 
 
 #if defined(__IPHONE_4_0) && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_4_0)
-    if(_msaaFramebuffer)
-    {
-        glBindFramebufferOES(GL_FRAMEBUFFER_OES, _msaaFramebuffer);
-
+    if (_msaaFramebuffer) {
+        // Resolve the contents from the multisampling buffer into the resolve (view) buffer
         glBindFramebufferOES(GL_READ_FRAMEBUFFER_APPLE, _msaaFramebuffer);
         glBindFramebufferOES(GL_DRAW_FRAMEBUFFER_APPLE, _viewFramebuffer);
-    
-        GLenum attachments[] = {GL_DEPTH_ATTACHMENT_OES, GL_COLOR_ATTACHMENT0_OES};
 
-#if !OSG_GLES3_FEATURES
-        glResolveMultisampleFramebufferAPPLE();
-        glDiscardFramebufferEXT(GL_READ_FRAMEBUFFER_APPLE, 2, attachments);
-#else
-        switch ([_context API])
-        {
-            case kEAGLRenderingAPIOpenGLES3:
-                glBlitFramebuffer(0, 0, _backingWidth, _backingHeight,
-                                  0, 0, _backingWidth, _backingHeight,
-                                  GL_COLOR_BUFFER_BIT, GL_LINEAR);
-                glInvalidateFramebuffer(GL_READ_FRAMEBUFFER_APPLE, 2, attachments);
-                break;
-
-            default:
-            #if !OSG_GLES3_FEATURES
-                glResolveMultisampleFramebufferAPPLE();
-            #endif
-                glDiscardFramebufferEXT(GL_READ_FRAMEBUFFER_APPLE, 2, attachments);
-                break;
+#   if OSG_GLES3_FEATURES
+        if ([_context API] == kEAGLRenderingAPIOpenGLES3) {
+            glBlitFramebuffer(0, 0, _backingWidth, _backingHeight,
+                              0, 0, _backingWidth, _backingHeight,
+                              GL_COLOR_BUFFER_BIT, GL_LINEAR);
         }
-#endif
+        else
+            glResolveMultisampleFramebufferAPPLE();
+#   else
+        glResolveMultisampleFramebufferAPPLE();
+#   endif
     }
 #endif
 
-      //swap buffers (sort of i think?)
+    // Present Results step
     glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer);
-
-    //display render in context
     [_context presentRenderbuffer:GL_RENDERBUFFER_OES];
 
-    //re bind the frame buffer for next frames renders
-    glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer);
-
 #if defined(__IPHONE_4_0) && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_4_0)
-    if (_msaaFramebuffer)
-        glBindFramebufferOES(GL_FRAMEBUFFER_OES, _msaaFramebuffer);;
+    if (_msaaFramebuffer) {
+        // Invalidate (discard) step (must be after present step)
+        GLenum attachments[] = {GL_DEPTH_ATTACHMENT_OES, GL_COLOR_ATTACHMENT0_OES};
+#   if OSG_GLES3_FEATURES
+        if ([_context API] == kEAGLRenderingAPIOpenGLES3)
+            glInvalidateFramebuffer(GL_READ_FRAMEBUFFER_APPLE, 2, attachments);
+        else
+            glDiscardFramebufferEXT(GL_READ_FRAMEBUFFER_APPLE, 2, attachments);
+#   else
+        glDiscardFramebufferEXT(GL_READ_FRAMEBUFFER_APPLE, 2, attachments);
+#   endif
+    }
 #endif
+
+    [self bindFrameBuffer];
 }
 
 //
 //bind view buffer as current for new render pass
 //
 - (void)bindFrameBuffer {
-
-    //bind the frame buffer
-    glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer);
-
 #if defined(__IPHONE_4_0) && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_4_0)
-    if (_msaaFramebuffer)
-        glBindFramebufferOES(GL_READ_FRAMEBUFFER_APPLE, _msaaFramebuffer);
+    if (_msaaFramebuffer) {
+#   if OSG_GLES3_FEATURES
+        if ([_context API] == kEAGLRenderingAPIOpenGLES3) {
+            glBindFramebufferOES(GL_DRAW_FRAMEBUFFER_APPLE, _msaaFramebuffer);
+            glBindFramebufferOES(GL_READ_FRAMEBUFFER_APPLE, _viewFramebuffer);
+        }
+        else
+            glBindFramebufferOES(GL_FRAMEBUFFER_OES, _msaaFramebuffer);
+#   else
+        glBindFramebufferOES(GL_FRAMEBUFFER_OES, _msaaFramebuffer);
+#   endif
+    }
+    else
+        glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer);
+#else
+    glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer);
 #endif
 }
 
@@ -899,10 +908,10 @@ bool GraphicsWindowIOS::realizeImplementation()
 #if OSG_GLES1_FEATURES
     _context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
 #elif OSG_GLES2_FEATURES
-
-    #if MULTI_GLES
+    #if OSG_GLES3_FEATURES
         _context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
-        if(!_context) _context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+        if (!_context)
+            _context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     #else
         _context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     #endif
@@ -915,11 +924,14 @@ bool GraphicsWindowIOS::realizeImplementation()
 
         #if OSG_GLES1_FEATURES
         OSG_FATAL << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create a valid OpenGLES1 context" << std::endl;
+        #elif OSG_GLES2_FEATURES && OSG_GLES3_FEATURES
+        OSG_FATAL << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create a valid OpenGLES3/OpenGLES2 context" << std::endl;
         #elif OSG_GLES2_FEATURES
-        OSG_FATAL << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create a valid OpenGLES2" << std::endl;
+        OSG_FATAL << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create a valid OpenGLES2 context" << std::endl;
         #elif OSG_GLES3_FEATURES
         OSG_FATAL << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create a valid OpenGLES3 context" << std::endl;
         #endif
+
         return false;
     }
 
@@ -1036,7 +1048,7 @@ bool GraphicsWindowIOS:: makeCurrentImplementation()
         _updateContext = false;
     }
     //i think we also want to bind the frame buffer here
-    //[_view bindFrameBuffer];
+//    [_view bindFrameBuffer];
 
     return true;
 }
