@@ -19,6 +19,8 @@ ENDIF()
 
 SET(HEADER_PATH ${OpenSceneGraph_SOURCE_DIR}/include/${LIB_NAME})
 SET(TARGET_H
+    ${HEADER_PATH}/io_utils
+    ${HEADER_PATH}/os_utils
     ${HEADER_PATH}/AlphaFunc
     ${HEADER_PATH}/AnimationPath
     ${HEADER_PATH}/ApplicationUsage
@@ -97,7 +99,6 @@ SET(TARGET_H
     ${HEADER_PATH}/ImageSequence
     ${HEADER_PATH}/ImageStream
     ${HEADER_PATH}/ImageUtils
-    ${HEADER_PATH}/io_utils
     ${HEADER_PATH}/KdTree
     ${HEADER_PATH}/Light
     ${HEADER_PATH}/LightModel
@@ -148,6 +149,7 @@ SET(TARGET_H
     ${HEADER_PATH}/ref_ptr
     ${HEADER_PATH}/RenderInfo
     ${HEADER_PATH}/SampleMaski
+    ${HEADER_PATH}/Sampler
     ${HEADER_PATH}/Scissor
     ${HEADER_PATH}/ScissorIndexed
     ${HEADER_PATH}/ScriptEngine
@@ -355,6 +357,7 @@ SET(TARGET_SRC
     Quat.cpp
     Referenced.cpp
     SampleMaski.cpp
+    Sampler.cpp
     Scissor.cpp
     ScissorIndexed.cpp
     ScriptEngine.cpp
@@ -454,4 +457,3 @@ SET(TARGET_EXTERNAL_LIBRARIES
 #INCLUDE(ModuleInstall OPTIONAL)
 
 SETUP_LIBRARY(${LIB_NAME})
-
