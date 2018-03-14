@@ -365,7 +365,14 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 
     glBindFramebufferOES(GL_FRAMEBUFFER_OES, _viewFramebuffer);
     glBindRenderbufferOES(GL_RENDERBUFFER_OES, _viewRenderbuffer);
-    [_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
+
+    if ([NSThread isMainThread])
+        [_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
+    else
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
+        });
+
     glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, GL_RENDERBUFFER_OES, _viewRenderbuffer);
 
     glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &_backingWidth);
@@ -816,14 +823,23 @@ bool GraphicsWindowIOS::realizeImplementation()
 
     NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
-    BOOL bar_hidden = (_traits->windowDecoration) ? NO: YES;
-    #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-    #if __IPHONE_OS_VERSION_MIN_REQUIRED > 30100
-        [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden withAnimation:UIStatusBarAnimationNone];
-    #else
-        [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden animated:NO];
-    #endif
-    #endif
+    std::function<void()> __body;
+
+    __body = [this]
+    {
+        BOOL bar_hidden = (_traits->windowDecoration) ? NO: YES;
+        #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+        #if __IPHONE_OS_VERSION_MIN_REQUIRED > 30100
+            [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden withAnimation:UIStatusBarAnimationNone];
+        #else
+            [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden animated:NO];
+        #endif
+        #endif
+    };
+    if ([NSThread isMainThread])
+        __body();
+    else
+        dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
 
     //Get info about the requested screen
     IOSWindowingSystemInterface* wsi = dynamic_cast<IOSWindowingSystemInterface*>(osg::GraphicsContext::getWindowingSystemInterface());
@@ -885,8 +901,15 @@ bool GraphicsWindowIOS::realizeImplementation()
     //if we own the window we need to create one
     if (_ownsWindow)
     {
-        //create the IOS window object using the viewbounds (in points) required for our context size
-        _window = [[GraphicsWindowIOSWindow alloc] initWithFrame: window_bounds];// styleMask: style backing: NSBackingStoreBuffered defer: NO];
+        __body = [this, &window_bounds]
+        {
+            //create the IOS window object using the viewbounds (in points) required for our context size
+            _window = [[GraphicsWindowIOSWindow alloc] initWithFrame: window_bounds];// styleMask: style backing: NSBackingStoreBuffered defer: NO];
+        };
+        if ([NSThread isMainThread])
+            __body();
+        else
+            dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
 
         if (!_window) {
             OSG_WARN << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create GraphicsWindowIOSWindow can not display gl view" << std::endl;
@@ -935,22 +958,35 @@ bool GraphicsWindowIOS::realizeImplementation()
         return false;
     }
 
-    //create the view to display our context in our window
-    CGRect gl_view_bounds = (_ownsWindow) ? [_window frame] : window_bounds;
-    GraphicsWindowIOSGLView* theView = [[ GraphicsWindowIOSGLView alloc ] initWithFrame: gl_view_bounds : this ];
+    GraphicsWindowIOSGLView* theView;
+    __body = [this, &window_bounds, &theView]
+    {
+        //create the view to display our context in our window
+        CGRect gl_view_bounds = (_ownsWindow) ? [_window frame] : window_bounds;
+
+        theView = [[ GraphicsWindowIOSGLView alloc ] initWithFrame: gl_view_bounds : this ];
+        if (!theView)
+        {
+            [theView setAutoresizingMask:  ( UIViewAutoresizingFlexibleWidth |  UIViewAutoresizingFlexibleHeight) ];
+
+            // Apply our content scale factor to our view, this is what converts the views points
+            // size to our desired context size.
+#if defined(__IPHONE_4_0) && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_4_0)
+            theView.contentScaleFactor = _viewContentScaleFactor;
+#endif
+        }
+    };
+    if ([NSThread isMainThread])
+        __body();
+    else
+        dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+
     if(!theView)
     {
         OSG_FATAL << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create GraphicsWindowIOSGLView, can not create frame buffers." << std::endl;
         return false;
     }
 
-    [theView setAutoresizingMask:  ( UIViewAutoresizingFlexibleWidth |  UIViewAutoresizingFlexibleHeight) ];
-
-    //Apply our content scale factor to our view, this is what converts the views points
-    //size to our desired context size.
-#if defined(__IPHONE_4_0) && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_4_0)
-    theView.contentScaleFactor = _viewContentScaleFactor;
-#endif
     [theView setGraphicsWindow: this];
     [theView setOpenGLContext:_context];
     _view = theView;
@@ -959,23 +995,38 @@ bool GraphicsWindowIOS::realizeImplementation()
 
     if (getDeviceOrientationFlags() != WindowData::IGNORE_ORIENTATION)
     {
-        _viewController = [[GraphicsWindowIOSGLViewController alloc] init];
-        _viewController.view = _view;
+        __body = [this]
+        {
+            _viewController = [[GraphicsWindowIOSGLViewController alloc] init];
+            _viewController.view = _view;
+        };
+        if ([NSThread isMainThread])
+            __body();
+        else
+            dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
     }
 
-    // Attach view to window
-    [_window addSubview: _view];
-    if ([_window isKindOfClass:[UIWindow class]])
-        _window.rootViewController = _viewController;
+    __body = [this]
+    {
+        // Attach view to window
+        [_window addSubview: _view];
+        if ([_window isKindOfClass:[UIWindow class]])
+            _window.rootViewController = _viewController;
+        
+        //if we own the window also make it visible
+        if (_ownsWindow)
+        {
+            //show window
+            [_window makeKeyAndVisible];
+        }
+    };
+    if ([NSThread isMainThread])
+        __body();
+    else
+        dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+
     [theView release];
 
-    //if we own the window also make it visible
-    if (_ownsWindow)
-    {
-
-        //show window
-        [_window makeKeyAndVisible];
-    }
 
     [pool release];
 
