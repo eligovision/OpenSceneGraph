@@ -722,6 +722,8 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 {
 
 }
+
+- (void) viewDidAppear:(BOOL)animated;
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation;
 - (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation duration:(NSTimeInterval)duration;
 
@@ -729,6 +731,11 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 
 @implementation GraphicsWindowIOSGLViewController
 
+- (void) viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    [UIViewController attemptRotationToDeviceOrientation];
+}
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
@@ -965,7 +972,7 @@ bool GraphicsWindowIOS::realizeImplementation()
         CGRect gl_view_bounds = (_ownsWindow) ? [_window frame] : window_bounds;
 
         theView = [[ GraphicsWindowIOSGLView alloc ] initWithFrame: gl_view_bounds : this ];
-        if (!theView)
+        if (theView)
         {
             [theView setAutoresizingMask:  ( UIViewAutoresizingFlexibleWidth |  UIViewAutoresizingFlexibleHeight) ];
 
@@ -1268,8 +1275,7 @@ osg::Vec2 GraphicsWindowIOS::pointToPixel(const osg::Vec2& point)
 
 osg::Vec2 GraphicsWindowIOS::pixelToPoint(const osg::Vec2& pixel)
 {
-    float scaler = 1.0f / _viewContentScaleFactor;
-    return pixel * scaler;
+    return pixel / _viewContentScaleFactor;
 }
 
 
