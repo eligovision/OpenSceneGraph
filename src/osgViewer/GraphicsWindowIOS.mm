@@ -735,6 +735,8 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 {
     [super viewDidAppear:animated];
     [UIViewController attemptRotationToDeviceOrientation];
+    if (self.view)
+        [self.view layoutSubviews];
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -789,6 +791,14 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 
 using namespace osgIOS;
 namespace osgViewer {
+
+UIViewController* GraphicsWindowIOS::WindowData::getController() const
+{
+    return [_windowOrView isKindOfClass:[UIWindow class]]
+        ? ((UIWindow*)(_windowOrView)).rootViewController
+        : _parentController;
+}
+
 
 
 
@@ -875,7 +885,7 @@ bool GraphicsWindowIOS::realizeImplementation()
         if (windowData->getWindowOrParentView())
         {
             _ownsWindow = false;
-            _window = windowData->getWindowOrParentView();
+            _window = (GraphicsWindowIOSWindow*)(windowData->getWindowOrParentView());
         }
 
         _deviceOrientationFlags = windowData->_deviceOrientationFlags;
@@ -1013,13 +1023,16 @@ bool GraphicsWindowIOS::realizeImplementation()
             dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
     }
 
-    __body = [this]
+    __body = [this, &windowData]
     {
         // Attach view to window
         [_window addSubview: _view];
-        if ([_window isKindOfClass:[UIWindow class]])
+
+        if ([_window isKindOfClass:[UIWindow class]]) // our controller is root
             _window.rootViewController = _viewController;
-        
+        else if (windowData->_parentController) // our controller is child
+            [windowData->_parentController addChildViewController:_viewController];
+
         //if we own the window also make it visible
         if (_ownsWindow)
         {
