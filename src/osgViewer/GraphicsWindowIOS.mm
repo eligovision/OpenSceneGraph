@@ -720,7 +720,6 @@ typedef std::map<void*, unsigned int> TouchPointsIdMapping;
 
 @interface GraphicsWindowIOSGLViewController : UIViewController
 {
-
 }
 
 - (void) viewDidAppear:(BOOL)animated;
@@ -896,7 +895,6 @@ bool GraphicsWindowIOS::realizeImplementation()
     //so we get a full res buffer
     if(_viewContentScaleFactor < 0.0f)
     {_viewContentScaleFactor = screenScaleFactor;}
-
 
     OSG_DEBUG << "GraphicsWindowIOS::realizeImplementation / ownsWindow: " << _ownsWindow << std::endl;
 
@@ -1104,13 +1102,8 @@ void GraphicsWindowIOS::closeImplementation()
 // makeCurrentImplementation
 // ----------------------------------------------------------------------------------------------------------
 
-bool GraphicsWindowIOS:: makeCurrentImplementation()
+void GraphicsWindowIOS::runOperations()
 {
-
-
-    //bind the context
-    [EAGLContext setCurrentContext:_context];
-
     if (_updateContext)
     {
         [_view destroyFramebuffer];
@@ -1118,6 +1111,15 @@ bool GraphicsWindowIOS:: makeCurrentImplementation()
 
         _updateContext = false;
     }
+
+    GraphicsContext::runOperations();
+}
+
+bool GraphicsWindowIOS::makeCurrentImplementation()
+{
+    //bind the context
+    [EAGLContext setCurrentContext:_context];
+
     //i think we also want to bind the frame buffer here
 //    [_view bindFrameBuffer];
 
