@@ -90,7 +90,7 @@ class GraphicsWindowIOS : public osgViewer::GraphicsWindow
         virtual const char* libraryName() const { return "osgViewer"; }
         virtual const char* className() const { return "GraphicsWindowIOS"; }
 
-        virtual void runOperations() override;
+        virtual void runOperations();
 
         virtual bool valid() const { return _valid; }
 

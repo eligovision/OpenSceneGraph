@@ -6,6 +6,14 @@
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 
+void(^processInMainThread)(void(^funcBlock)()) = ^(void(^funcBlock)())
+{
+    if ([NSThread isMainThread])
+        funcBlock();
+    else
+        dispatch_sync(dispatch_get_main_queue(), ^{ funcBlock(); });
+};
+
 #if OSG_GLES1_FEATURES
     #import <OpenGLES/ES1/glext.h>
 #else
@@ -839,23 +847,17 @@ bool GraphicsWindowIOS::realizeImplementation()
 
     NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
-    std::function<void()> __body;
-
-    __body = [this]
+    processInMainThread(^
     {
         BOOL bar_hidden = (_traits->windowDecoration) ? NO: YES;
-        #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-        #if __IPHONE_OS_VERSION_MIN_REQUIRED > 30100
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
+    #if __IPHONE_OS_VERSION_MIN_REQUIRED > 30100
             [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden withAnimation:UIStatusBarAnimationNone];
-        #else
+    #else
             [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden animated:NO];
-        #endif
-        #endif
-    };
-    if ([NSThread isMainThread])
-        __body();
-    else
-        dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+    #endif
+#endif
+    });
 
     //Get info about the requested screen
     IOSWindowingSystemInterface* wsi = dynamic_cast<IOSWindowingSystemInterface*>(osg::GraphicsContext::getWindowingSystemInterface());
@@ -903,7 +905,7 @@ bool GraphicsWindowIOS::realizeImplementation()
     //but we need to create our views and windows in points. By default we create a full res buffer across all devices. This
     //means that for backward compatibility you need to set the windowData _viewContentScaleFactor to 1.0f and set the screen res to the
     //res of the older gen device.
-    CGRect window_bounds;
+    __block CGRect window_bounds;
     osg::Vec2 pointsOrigin = this->pixelToPoint(osg::Vec2(_traits->x, _traits->y));
     osg::Vec2 pointsSize = this->pixelToPoint(osg::Vec2(_traits->width, _traits->height));
 
@@ -916,15 +918,11 @@ bool GraphicsWindowIOS::realizeImplementation()
     //if we own the window we need to create one
     if (_ownsWindow)
     {
-        __body = [this, &window_bounds]
+        processInMainThread(^
         {
             //create the IOS window object using the viewbounds (in points) required for our context size
             _window = [[GraphicsWindowIOSWindow alloc] initWithFrame: window_bounds];// styleMask: style backing: NSBackingStoreBuffered defer: NO];
-        };
-        if ([NSThread isMainThread])
-            __body();
-        else
-            dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+        });
 
         if (!_window) {
             OSG_WARN << "GraphicsWindowIOS::realizeImplementation: ERROR: Failed to create GraphicsWindowIOSWindow can not display gl view" << std::endl;
@@ -973,8 +971,8 @@ bool GraphicsWindowIOS::realizeImplementation()
         return false;
     }
 
-    GraphicsWindowIOSGLView* theView;
-    __body = [this, &window_bounds, &theView]
+    __block GraphicsWindowIOSGLView* theView;
+    processInMainThread(^
     {
         //create the view to display our context in our window
         CGRect gl_view_bounds = (_ownsWindow) ? [_window frame] : window_bounds;
@@ -990,11 +988,7 @@ bool GraphicsWindowIOS::realizeImplementation()
             theView.contentScaleFactor = _viewContentScaleFactor;
 #endif
         }
-    };
-    if ([NSThread isMainThread])
-        __body();
-    else
-        dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+    });
 
     if(!theView)
     {
@@ -1010,18 +1004,14 @@ bool GraphicsWindowIOS::realizeImplementation()
 
     if (getDeviceOrientationFlags() != WindowData::IGNORE_ORIENTATION)
     {
-        __body = [this]
+        processInMainThread(^
         {
             _viewController = [[GraphicsWindowIOSGLViewController alloc] init];
             _viewController.view = _view;
-        };
-        if ([NSThread isMainThread])
-            __body();
-        else
-            dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+        });
     }
 
-    __body = [this, &windowData]
+    processInMainThread(^
     {
         // Attach view to window
         [_window addSubview: _view];
@@ -1037,11 +1027,7 @@ bool GraphicsWindowIOS::realizeImplementation()
             //show window
             [_window makeKeyAndVisible];
         }
-    };
-    if ([NSThread isMainThread])
-        __body();
-    else
-        dispatch_sync(dispatch_get_main_queue(), ^{ __body(); });
+    });
 
     [theView release];
 
@@ -1162,7 +1148,9 @@ bool GraphicsWindowIOS::setWindowDecorationImplementation(bool flag)
 {
     if (!_realized || !_ownsWindow) return false;
 
-    BOOL bar_hidden = (flag) ? NO: YES;
+    __block BOOL bar_hidden = (flag) ? NO: YES;
+    processInMainThread(^
+    {
     #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
     #if __IPHONE_OS_VERSION_MIN_REQUIRED > 30100
         [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden withAnimation:UIStatusBarAnimationNone];
@@ -1170,6 +1158,7 @@ bool GraphicsWindowIOS::setWindowDecorationImplementation(bool flag)
         [[UIApplication sharedApplication] setStatusBarHidden: bar_hidden animated:NO];
     #endif
     #endif
+    });
 
     return true;
 }
@@ -1180,8 +1169,11 @@ bool GraphicsWindowIOS::setWindowDecorationImplementation(bool flag)
 // ----------------------------------------------------------------------------------------------------------
 void GraphicsWindowIOS::grabFocus()
 {
-    //i think make key is the equivalent of focus on iphone
-    [_window makeKeyWindow];
+    processInMainThread(^
+    {
+        //i think make key is the equivalent of focus on iphone
+        [_window makeKeyWindow];
+    });
 }
 
 
@@ -1199,7 +1191,10 @@ void GraphicsWindowIOS::grabFocusIfPointerInWindow()
 // ----------------------------------------------------------------------------------------------------------
 void GraphicsWindowIOS::raiseWindow()
 {
-    [_window bringSubviewToFront:_view];
+    processInMainThread(^
+    {
+        [_window bringSubviewToFront:_view];
+    });
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -1330,4 +1325,4 @@ public:
 
 REGISTER_WINDOWINGSYSTEMINTERFACE(IOS, ConcreteIOSWindowingSystemInterface)
 
-}//end namspace
+}//end namespace
