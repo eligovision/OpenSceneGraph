@@ -187,7 +187,7 @@ int Program::compare(const osg::StateAttribute& sa) const
 
 void Program::compileGLObjects( osg::State& state ) const
 {
-    if( isFixedFunction() ) return;
+    if( _shaderList.empty() ) return;
 
     for( unsigned int i=0; i < _shaderList.size(); ++i )
     {
@@ -416,7 +416,7 @@ void Program::apply( osg::State& state ) const
     const GLExtensions* extensions = state.get<GLExtensions>();
     if( ! extensions->isGlslSupported ) return;
 
-    if( isFixedFunction() )
+    if( _shaderList.empty() )
     {
         extensions->glUseProgram( 0 );
         state.setLastAppliedProgramObject(0);
@@ -605,10 +605,14 @@ Program::PerContextProgram* Program::getPCP(State& state) const
 
 bool Program::isFixedFunction() const
 {
+#ifdef OSG_GL_FIXED_FUNCTION_AVAILABLE
     // A Program object having no attached Shaders is a special case:
     // it indicates that programmable shading is to be disabled,
     // and thus use GL 1.x "fixed functionality" rendering.
     return _shaderList.empty();
+#else
+    return false;
+#endif
 }
 
 
