@@ -1,3 +1,161 @@
+Wed, 4 Apr 2018 15:09:43 +0100
+Author : Robert Osfield
+Fixed threading crash in osgFX that occurred when an osgFX node is added to the scene being rendered in multiple threaded windows.
+
+Wed, 4 Apr 2018 13:40:51 +0100
+Author : Robert Osfield
+Added focus classifiction of handling of keyboard events
+
+Wed, 4 Apr 2018 13:40:06 +0100
+Author : Robert Osfield
+Added EventHandler to report key and mouse events for debugging purposes
+
+Wed, 4 Apr 2018 12:26:53 +0100
+Author : Robert Osfield
+Added -4 command line entry that creates two seperate windows within CompositeViewer
+
+Wed, 4 Apr 2018 08:50:39 +0100
+Author : Frank Bausch
+When testing XYZ/ECEF coordinate values that convert to LLA points with latitude = 90.0 or latitude = -90.0, the heights calculated by EllipsoidModel::convertXYZToLatLongHeight have substantial errors. With the provided change, points at the pole are handled more correctly. This has been tested against US NGA GoldData.
+
+Tue, 3 Apr 2018 17:21:47 +0100
+Author : Robert Osfield
+Updated rc to 5
+
+Tue, 3 Apr 2018 17:17:59 +0100
+Author : OpenSceneGraph git repository
+Merge pull request #518 from emminizer/fix-scroll-eventCompositeViewer: SCROLL event now only goes to view with focus.  Incl…
+
+Tue, 3 Apr 2018 16:07:46 +0100
+Author : Robert Osfield
+Updated rc number to 4
+
+Tue, 3 Apr 2018 16:04:24 +0100
+Author : Robert Osfield
+Updated ChangeLog and NEWS for rc3
+
+Tue, 3 Apr 2018 15:48:37 +0100
+Author : Thomas Hogarth
+missing gles2 check
+
+Tue, 3 Apr 2018 10:32:58 -0400
+Author : Daniel Emminizer
+CompositeViewer: SCROLL event now only goes to view with focus.  Includes minor typo fixes.
+
+Tue, 3 Apr 2018 15:29:54 +0100
+Author : Robert Osfield
+Added a ShadowTechniue::setShadowedScene() virtual method to make it possible to implement techniques as fascades to other techniques
+
+Tue, 3 Apr 2018 12:42:37 +0100
+Author : Andreas Ekstrand
+The attached code (from the 3.6 branch) adds a keepSeparatePoints option to the SHP plugin which makes it possible to avoid merging point features into multi-points, in case you e.g. need to keep separate point attributes.It also contains a fix in the Xbase DBF parser, converting a numeric shape attribute to double instead of integer. As stated in e.g. https://en.wikipedia.org/wiki/.dbf the numeric field can contain decimals.
+
+
+Tue, 3 Apr 2018 11:35:31 +0100
+Author : Robert Osfield
+Removed osgShadow::ShadowVolume as it functionality isn't functional
+
+Tue, 3 Apr 2018 12:10:29 +0100
+Author : OpenSceneGraph git repository
+Merge pull request #516 from eligovision/OpenSceneGraph-3.6_programosg::Program's compileGLObjects and apply methods fixed for OSG witho…
+
+Mon, 2 Apr 2018 23:56:36 +0300
+Author : Konstantin S. Matveyev
+osg::Program's compileGLObjects and apply methods fixed for OSG without OSG_GL_FIXED_FUNCTION_AVAILABLE
+
+Mon, 2 Apr 2018 18:26:26 +0100
+Author : Robert Osfield
+Rewrote the handling of AutoTransform::setAutoScaleToScreen(bool) functionality so that is disabling CullingActive when switched on.
+
+Mon, 2 Apr 2018 16:21:20 +0100
+Author : Robert Osfield
+Added __VERSION__<140 check for usage of gl_ClipVertex to avoid GL3 core profile usage issues
+
+Mon, 2 Apr 2018 14:08:47 +0100
+Author : Robert Osfield
+Restructured merge geometry code to make it easier to follow
+
+Mon, 2 Apr 2018 11:44:03 +0100
+Author : Robert Osfield
+Fix for MergeGeometryVsiitor bug. Restructured the processing the merge geometry list to avoid missing geometries that aren't binned along with other geometries.
+
+Sun, 1 Apr 2018 10:40:25 +0100
+Author : Robert Osfield
+Removed stray CMAkeLists.txt from TARGET_SRC list
+
+Sun, 1 Apr 2018 10:18:45 +0100
+Author : Andreas Ekstrand
+Small fix (from the 3.6 branch) in the osgjs plugin, avoiding a double addition of the CullFace attribute when it has been turned off. This resulted in an empty json object in the osgjs file causing warnings in osgjs.
+
+Fri, 30 Mar 2018 17:52:12 +0100
+Author : Robert Osfield
+Updated NEWS and ChangeLog for 3.6.0-rc3
+
+Fri, 30 Mar 2018 16:34:01 +0100
+Author : Robert Osfield
+Fixed build with OSG_USE_REF_PTR_IMPLICIT_OUTPUT_CONVERSION set to OFF
+
+Fri, 30 Mar 2018 15:27:35 +0100
+Author : Robert Osfield
+Added suport for writing to gl_ClipVertex
+
+Fri, 30 Mar 2018 15:16:45 +0100
+Author : Robert Osfield
+To osgclipe example added --text textstring and --simple command line options to test mixing text and clipping
+
+Fri, 30 Mar 2018 12:39:52 +0100
+Author : Robert Osfield
+Changed Layer::get*Value(..) methods to const
+
+Thu, 29 Mar 2018 11:38:04 +0100
+Author : Robert Osfield
+Fixed double calling of TerrainTechnique::init().
+
+Thu, 29 Mar 2018 11:35:34 +0100
+Author : Robert Osfield
+Maded TerrainTechnique::setTerrainTile(..), addNeighbour(..), removeNeighbour(..) and containsNeighbour(..) virtual and public to enable implementation of TerrainTechnique that act as a facade to actual TerrainTechnique implementations.
+
+Wed, 28 Mar 2018 14:04:41 +0100
+Author : Robert Osfield
+Updated RC number to 3
+
+Wed, 28 Mar 2018 11:34:52 +0100
+Author : Robert Osfield
+Fixed osgDB::findFileInDirectory() handling of directory strings with trailing \ or / that was causing failure to find valid files in otherwise valid directories
+
+Tue, 27 Mar 2018 18:56:38 +0800
+Author : Haojia Yu
+OutputStream writes images using its Options objectwhen writing images, OutputStream can search files using its Options object rahter than always using FilePathList object of global Regidtry instance.
+
+
+Tue, 27 Mar 2018 08:39:52 +0100
+Author : OpenSceneGraph git repository
+Merge pull request #510 from eligovision/OpenSceneGraph-3.6_iosGraphicsWindowIOS: multithreaded viewer's mode support added; updated…
+
+Tue, 27 Mar 2018 08:37:29 +0100
+Author : OpenSceneGraph git repository
+Merge pull request #508 from eligovision/OpenSceneGraph-3.6_pluginsOSG 3.6: Write support with .curl pseudo extension added
+
+Tue, 27 Mar 2018 08:35:57 +0100
+Author : OpenSceneGraph git repository
+Merge pull request #509 from eligovision/OpenSceneGraph-3.6_vasVertexArrayState: typo fixed in log
+
+Mon, 26 Mar 2018 20:40:14 +0300
+Author : Konstantin S. Matveyev
+GraphicsWindowIOS: multithreaded viewer's mode support added; updated for iOS-11 SDK; view rotations fixed; GLES2, GLES3 preprocessors fixed; tested on iPhone4 and upper
+
+Fri, 19 Jan 2018 22:20:01 +0300
+Author : Konstantin S. Matveyev
+VertexArrayState: typo fixed in log
+
+Mon, 26 Mar 2018 17:59:49 +0300
+Author : Konstantin S. Matveyev
+Write support with .curl pseudo extension added
+
+Mon, 26 Mar 2018 09:55:53 +0100
+Author : Robert Osfield
+Updated ChangeLog
+
 Mon, 26 Mar 2018 09:54:59 +0100
 Author : Robert Osfield
 Updated NEWS for 3.6.0-rc2
