@@ -776,7 +776,6 @@ void TextBase::setupDecoration()
         primitives->push_back(base+3);
 
         _coords->dirty();
-        _texcoords->dirty();
         primitives->dirty();
     }
 
@@ -812,7 +811,6 @@ void TextBase::setupDecoration()
             primitives->push_back(base+3);
 
             _coords->dirty();
-            _texcoords->dirty();
             primitives->dirty();
         }
         else
@@ -893,7 +891,6 @@ void TextBase::setupDecoration()
             primitives->push_back(base+7);
 
             _coords->dirty();
-            _texcoords->dirty();
             primitives->dirty();
         }
     }
@@ -931,7 +928,6 @@ void TextBase::setupDecoration()
         primitives->push_back(base+3);
 
         _coords->dirty();
-        _texcoords->dirty();
         primitives->dirty();
     }
 }
