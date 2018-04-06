@@ -298,7 +298,7 @@ void TextBase::setAlignment(AlignmentType alignment)
     if (_alignment==alignment) return;
 
     _alignment = alignment;
-    // computePositions();
+    //computePositions();
     computeGlyphRepresentation();
 }
 
