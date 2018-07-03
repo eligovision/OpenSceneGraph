@@ -3,7 +3,7 @@
 #
 SET(OPENSCENEGRAPH_MAJOR_VERSION 3)
 SET(OPENSCENEGRAPH_MINOR_VERSION 6)
-SET(OPENSCENEGRAPH_PATCH_VERSION 1)
+SET(OPENSCENEGRAPH_PATCH_VERSION 2)
 SET(OPENSCENEGRAPH_SOVERSION 157)
 
 
@@ -561,7 +561,7 @@ IF (OSG_GL3_AVAILABLE)
             SET(OPENGL_HEADER1 "#include <GL/glcorearb.h>" CACHE STRING "#include<> line for OpenGL Header")
             SET(OPENGL_HEADER2 "" CACHE STRING "#include<> line for additional OpenGL Headers if required")
         ELSE()
-            SET(OPENGL_HEADER1 "#include <GL3/gl3.h>" CACHE STRING "#include<> line for OpenGL Header")
+            SET(OPENGL_HEADER1 "#include <GL/gl.h>" CACHE STRING "#include<> line for OpenGL Header")
             SET(OPENGL_HEADER2 "" CACHE STRING "#include<> line for additional OpenGL Headers if required")
         ENDIF()
 
@@ -752,7 +752,6 @@ ELSE()
     FIND_PACKAGE(COLLADA)
     FIND_PACKAGE(FBX)
     FIND_PACKAGE(ZLIB)
-    FIND_PACKAGE(Xine)
     FIND_PACKAGE(OpenVRML)
     FIND_PACKAGE(GDAL)
     FIND_PACKAGE(GTA)
