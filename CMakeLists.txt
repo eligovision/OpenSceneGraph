@@ -4,12 +4,12 @@
 SET(OPENSCENEGRAPH_MAJOR_VERSION 3)
 SET(OPENSCENEGRAPH_MINOR_VERSION 6)
 SET(OPENSCENEGRAPH_PATCH_VERSION 4)
-SET(OPENSCENEGRAPH_SOVERSION 159)
+SET(OPENSCENEGRAPH_SOVERSION 160)
 
 
 # set to 0 when not a release candidate, non zero means that any generated
 # git tags will be treated as release candidates of given number
-SET(OPENSCENEGRAPH_RELEASE_CANDIDATE 3)
+SET(OPENSCENEGRAPH_RELEASE_CANDIDATE 5)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -50,9 +50,10 @@ ENDIF()
 # value is needed to find the correct version of OpenGL (X11 or Cocoa).
 
 IF(ANDROID)
-    SET(OSG_WINDOWING_SYSTEM "None" CACHE STRING "None Windowing system type for graphics window creation.")
-
-ELSIF(APPLE)
+    SET(OSG_WINDOWING_SYSTEM "None" CACHE STRING "Windowing system type for graphics window creation; options: None.")
+ELSEIF(WIN32)
+    SET(OSG_WINDOWING_SYSTEM "Win32" CACHE STRING "Windowing system type for graphics window creation; options: Win32 or None.")
+ELSEIF(APPLE)
     # custom option to flag an iOS build
     OPTION(OSG_BUILD_PLATFORM_IPHONE "Enable IPhoneSDK Device support" OFF)
 
@@ -81,9 +82,9 @@ ELSIF(APPLE)
     ELSE()
         # OSX >= 10.5 uses Cocoa windowing system, otherwise Carbon
         IF(OSG_OSX_VERSION VERSION_LESS 10.5)
-            SET(OSG_WINDOWING_SYSTEM "Carbon" CACHE STRING "Windowing system type for graphics window creation, options Carbon, Cocoa or X11.")
+            SET(OSG_WINDOWING_SYSTEM "Carbon" CACHE STRING "Windowing system type for graphics window creation; options: Carbon, Cocoa, X11 or None.")
         ELSE()
-            SET(OSG_WINDOWING_SYSTEM "Cocoa" CACHE STRING "Windowing system type for graphics window creation, options Carbon, Cocoa or X11.")
+            SET(OSG_WINDOWING_SYSTEM "Cocoa" CACHE STRING "Windowing system type for graphics window creation; options: Carbon, Cocoa, X11 or None.")
         ENDIF()
 
         # Set defaults for Universal Binaries. We want 32-bit Intel/PPC on 10.4
@@ -111,7 +112,7 @@ ELSIF(APPLE)
         ENDIF()
     ENDIF()
 ELSE()
-    SET(OSG_WINDOWING_SYSTEM "X11" CACHE STRING "Windowing system type for graphics window creation. options only X11")
+    SET(OSG_WINDOWING_SYSTEM "X11" CACHE STRING "Windowing system type for graphics window creation; options: X11 or None.")
 ENDIF()
 
 
@@ -785,9 +786,7 @@ IF   (BUILD_OSG_EXAMPLES AND NOT ANDROID)
 
     FIND_PACKAGE(FLTK)
     FIND_PACKAGE(FOX)
-
-    SET(wxWidgets_USE_LIBS base core gl net)
-    FIND_PACKAGE(wxWidgets)
+    FIND_PACKAGE(wxWidgets COMPONENTS base core gl net)
 
 ENDIF(BUILD_OSG_EXAMPLES AND NOT ANDROID)
 

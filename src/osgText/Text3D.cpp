@@ -56,7 +56,21 @@ void Text3D::accept(osg::PrimitiveFunctor& pf) const
 {
     if (!_coords || _coords->empty()) return;
 
-    pf.setVertexArray(_coords->size(), &(_coords->front()));
+    // short term fix/workaround for _coords being transformed by a local matrix before rendering, so we need to replicate this was doing tasks like intersection testing.
+    osg::ref_ptr<osg::Vec3Array> vertices = _coords;
+    if (!_matrix.isIdentity())
+    {
+        vertices = new osg::Vec3Array;
+        vertices->resize(_coords->size());
+        for(osg::Vec3Array::iterator sitr = _coords->begin(), ditr = vertices->begin();
+            sitr != _coords->end();
+            ++sitr, ++ditr)
+        {
+            *ditr = *sitr * _matrix;
+        }
+    }
+
+    pf.setVertexArray(vertices->size(), &(vertices->front()));
 
     for(osg::Geometry::PrimitiveSetList::const_iterator itr = _frontPrimitiveSetList.begin();
         itr != _frontPrimitiveSetList.end();
@@ -436,7 +450,7 @@ void Text3D::computeGlyphRepresentation()
             _coords->insert(_coords->end(), src_vertices->begin(), src_vertices->end());
             for(unsigned int i=base; i<_coords->size(); ++i)
             {
-                (*_coords)[i] = ((*_coords)[i] + position)*_matrix;
+                (*_coords)[i] += position;
             }
             _coords->dirty();
 
@@ -478,6 +492,32 @@ osg::BoundingBox Text3D::computeBoundingBox() const
 void Text3D::drawImplementation(osg::RenderInfo& renderInfo) const
 {
     osg::State & state = *renderInfo.getState();
+
+
+    // ** save the previous modelview matrix
+    osg::Matrix previous_modelview(state.getModelViewMatrix());
+
+    // set up the new modelview matrix
+    osg::Matrix modelview;
+    bool needToApplyMatrix = computeMatrix(modelview, &state);
+
+    if (needToApplyMatrix)
+    {
+        // ** mult previous by the modelview for this context
+        modelview.postMult(previous_modelview);
+
+        // ** apply this new modelview matrix
+        state.applyModelViewMatrix(modelview);
+
+        // workaround for GL3/GL2
+        if (state.getUseModelViewAndProjectionUniforms()) state.applyModelViewAndProjectionUniformsIfRequired();
+
+        // OSG_NOTICE<<"New state.applyModelViewMatrix() "<<modelview<<std::endl;
+    }
+    else
+    {
+        // OSG_NOTICE<<"No need to apply matrix "<<std::endl;
+    }
 
     osg::VertexArrayState* vas = state.getCurrentVertexArrayState();
     bool usingVertexBufferObjects = state.useVertexBufferObject(_supportsVertexBufferObjects && _useVertexBufferObjects);
@@ -553,6 +593,15 @@ void Text3D::drawImplementation(osg::RenderInfo& renderInfo) const
         // unbind the VBO's if any are used.
         vas->unbindVertexBufferObject();
         vas->unbindElementBufferObject();
+    }
+
+    if (needToApplyMatrix)
+    {
+        // restore the previous modelview matrix
+        state.applyModelViewMatrix(previous_modelview);
+
+        // workaround for GL3/GL2
+        if (state.getUseModelViewAndProjectionUniforms()) state.applyModelViewAndProjectionUniformsIfRequired();
     }
 }
 
