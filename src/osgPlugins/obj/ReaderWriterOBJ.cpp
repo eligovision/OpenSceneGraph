@@ -75,9 +75,20 @@ public:
         supportsOption("NsIfNotPresent=<value>", "set specular exponent if not present");
 
         supportsOption("precision=<digits>","Set the floating point precision when writing out files");
+        supportsOption("OutputTextureFiles", "Write out the texture images to file");
     }
 
     virtual const char* className() const { return "Wavefront OBJ Reader"; }
+
+    virtual ReadResult readObject(const std::string& fileName, const osgDB::ReaderWriter::Options* options) const
+    {
+        return readNode(fileName, options);
+    }
+
+    virtual ReadResult readObject(std::istream& fin, const Options* options) const
+    {
+        return readNode(fin, options);
+    }
 
     virtual ReadResult readNode(const std::string& fileName, const osgDB::ReaderWriter::Options* options) const;
 
@@ -103,7 +114,7 @@ public:
         f.precision(localOptions.precision);
 
         std::string materialFile = osgDB::getNameLessExtension(fileName) + ".mtl";
-        OBJWriterNodeVisitor nv(f, osgDB::getSimpleFileName(materialFile));
+        OBJWriterNodeVisitor nv(f, osgDB::getSimpleFileName(materialFile), localOptions.outputTextureFiles, options);
 
         // we must cast away constness
         (const_cast<osg::Node*>(&node))->accept(nv);
@@ -131,7 +142,7 @@ public:
 
         // writing to a stream does not support materials
 
-        OBJWriterNodeVisitor nv(fout);
+        OBJWriterNodeVisitor nv(fout, "", localOptions.outputTextureFiles, options);
 
         // we must cast away constness
         (const_cast<osg::Node*>(&node))->accept(nv);
@@ -157,6 +168,7 @@ protected:
         TextureAllocationMap textureUnitAllocation;
         /// Coordinates precision.
         int precision;
+        bool outputTextureFiles;
         int specularExponent;
 
         ObjOptionsStruct()
@@ -168,6 +180,7 @@ protected:
             fixBlackMaterials = true;
             noReverseFaces = false;
             precision = std::numeric_limits<double>::digits10 + 2;
+            outputTextureFiles = false;
             specularExponent = -1;
         }
     };
@@ -880,6 +893,10 @@ ReaderWriterOBJ::ObjOptionsStruct ReaderWriterOBJ::parseOptions(const osgDB::Rea
             else if (pre_equals == "noReverseFaces")
             {
                 localOptions.noReverseFaces = true;
+            }
+            else if (pre_equals == "OutputTextureFiles")
+            {
+                localOptions.outputTextureFiles = true;
             }
             else if (pre_equals == "precision")
             {
