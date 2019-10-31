@@ -325,6 +325,9 @@ struct SafeArray
     operator T*() { return impl; }
 
     template<typename U>
+#ifndef _WIN32
+    explicit
+#endif
     operator U() { return (U)impl; }
 
 private:
