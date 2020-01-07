@@ -1183,12 +1183,9 @@ void Text::drawImplementation(osg::State& state, const osg::Vec4& colorMultiplie
 
     state.Normal(_normal.x(), _normal.y(), _normal.z());
 
+    osg::VertexArrayState* vas = state.getCurrentVertexArrayState();
     bool usingVertexBufferObjects = state.useVertexBufferObject(_supportsVertexBufferObjects && _useVertexBufferObjects);
     bool usingVertexArrayObjects = usingVertexBufferObjects && state.useVertexArrayObject(_useVertexArrayObject);
-
-    osg::VertexArrayState* vas = state.getCurrentVertexArrayState();
-    vas->setVertexBufferObjectSupported(usingVertexBufferObjects);
-
     bool requiresSetArrays = !usingVertexBufferObjects || !usingVertexArrayObjects || vas->getRequiresSetArrays();
 
     if (requiresSetArrays)
@@ -1216,7 +1213,7 @@ void Text::drawImplementation(osg::State& state, const osg::Vec4& colorMultiplie
 
     state.haveAppliedAttribute(osg::StateAttribute::DEPTH);
 
-    if ((usingVertexBufferObjects && !usingVertexArrayObjects) || requiresSetArrays)
+    if (usingVertexBufferObjects && !usingVertexArrayObjects)
     {
         // unbind the VBO's if any are used.
         vas->unbindVertexBufferObject();
