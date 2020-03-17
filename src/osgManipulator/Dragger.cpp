@@ -388,6 +388,13 @@ bool Dragger::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& 
         {
             case osgGA::GUIEventAdapter::PUSH:
             {
+                if (_draggerActive)
+                    // Skip more than one PUSH (prevent lack of 'FINISH' command)
+                {
+                    handled = true;
+                    break;
+                }
+
                 osgUtil::LineSegmentIntersector::Intersections intersections;
 
                 _pointer.reset();
