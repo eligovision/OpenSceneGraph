@@ -27,7 +27,7 @@
 #include <set>
 #include <sstream>
 
-#if defined(WIN32)
+#if defined(_WIN32)
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif // WIN32_LEAN_AND_MEAN
@@ -174,7 +174,7 @@ bool osg::isGLExtensionOrVersionSupported(unsigned int contextID, const char *ex
                 if (*startOfWord!=0) extensionSet.insert(std::string(startOfWord));
             }
 
-    #if defined(WIN32) && (defined(OSG_GL1_AVAILABLE) || defined(OSG_GL2_AVAILABLE) || defined(OSG_GL3_AVAILABLE))
+    #if defined(_WIN32) && (defined(OSG_GL1_AVAILABLE) || defined(OSG_GL2_AVAILABLE) || defined(OSG_GL3_AVAILABLE))
 
             // add WGL extensions to the list
 
@@ -340,7 +340,7 @@ OSG_INIT_SINGLETON_PROXY(GLExtensionDisableStringInitializationProxy, osg::getGL
         #endif
         return dlsym(handle, funcName);
 
-    #elif defined(WIN32)
+    #elif defined(_WIN32)
 
         #if defined(OSG_GLES2_AVAILABLE)
             static HMODULE hmodule = GetModuleHandle(TEXT("libGLESv2.dll"));
@@ -918,8 +918,8 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glTextureStorage2D,"glTextureStorage2D","glTextureStorage2DARB", validContext);
     setGLExtensionFuncPtr(glTexStorage3D, "glTexStorage3D","glTexStorage3DEXT", validContext);
     setGLExtensionFuncPtr(glTextureStorage3D, "glTextureStorage3D","glTextureStorage3DEXT", validContext);
-    setGLExtensionFuncPtr(glTexStorage2DMultisample, "glTextureStorage2DMultisample","glTextureStorage2DMultisampleEXT", validContext);
-    setGLExtensionFuncPtr(glTexStorage3DMultisample, "glTextureStorage3DMultisample","glTextureStorage3DMultisampleEXT", validContext);
+    setGLExtensionFuncPtr(glTexStorage2DMultisample, "glTexStorage2DMultisample", validContext);
+    setGLExtensionFuncPtr(glTexStorage3DMultisample, "glTexStorage3DMultisample", validContext);
     setGLExtensionFuncPtr(glTextureView, "glTextureView","glTextureViewEXT", validContext);
 
     setGLExtensionFuncPtr(glCompressedTexImage2D,"glCompressedTexImage2D","glCompressedTexImage2DARB", validContext);
