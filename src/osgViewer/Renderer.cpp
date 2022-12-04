@@ -473,7 +473,15 @@ void Renderer::initialize(osg::State* state)
         _initialized = true;
         osg::GLExtensions* ext = state->get<osg::GLExtensions>();
         if (ext->isARBTimerQuerySupported && state->getTimestampBits() > 0)
+        {
+#if defined(__APPLE__)
+            // NOTE: Query result of 'glQueryCounter(id, GL_TIMESTAMP)' is always zero on macOS
+            DEBUG_MESSAGE<<"ARBQuerySupport is not fully supported by APPLE, switching to EXTQuerySupport"<<std::endl;
+            _querySupport = new EXTQuerySupport();
+#else
             _querySupport = new ARBQuerySupport();
+#endif
+        }
         else if (ext->isTimerQuerySupported)
             _querySupport = new EXTQuerySupport();
         if (_querySupport.valid())
