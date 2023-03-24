@@ -218,22 +218,25 @@ struct FrameBufferAttachment::Pimpl
     unsigned int cubeMapFace;
     unsigned int level;
     unsigned int zoffset;
+    int samples;
 
-    explicit Pimpl(TargetType ttype = RENDERBUFFER, unsigned int lev = 0)
-    :    targetType(ttype),
+    explicit Pimpl(TargetType ttype = RENDERBUFFER, unsigned int lev = 0, int samples = 0)
+    :   targetType(ttype),
         cubeMapFace(0),
         level(lev),
-        zoffset(0)
+        zoffset(0),
+        samples(samples)
     {
     }
 
     Pimpl(const Pimpl &copy)
-    :    targetType(copy.targetType),
+    :   targetType(copy.targetType),
         renderbufferTarget(copy.renderbufferTarget),
         textureTarget(copy.textureTarget),
         cubeMapFace(copy.cubeMapFace),
         level(copy.level),
-        zoffset(copy.zoffset)
+        zoffset(copy.zoffset),
+        samples(copy.samples)
     {
     }
 };
@@ -260,6 +263,7 @@ FrameBufferAttachment::FrameBufferAttachment(Texture1D* target, unsigned int lev
     _ximpl->textureTarget = target;
 }
 
+// TODO: samples
 FrameBufferAttachment::FrameBufferAttachment(Texture2D* target, unsigned int level)
 {
     _ximpl = new Pimpl(Pimpl::TEXTURE2D, level);
@@ -316,7 +320,7 @@ FrameBufferAttachment::FrameBufferAttachment(Camera::Attachment& attachment)
         osg::Texture2D* texture2D = dynamic_cast<osg::Texture2D*>(texture);
         if (texture2D)
         {
-            _ximpl = new Pimpl(Pimpl::TEXTURE2D, attachment._level);
+            _ximpl = new Pimpl(Pimpl::TEXTURE2D, attachment._level, attachment._multisampleColorSamples);
             _ximpl->textureTarget = texture2D;
             return;
         }
@@ -478,8 +482,23 @@ void FrameBufferAttachment::attach(State &state, GLenum target, GLenum attachmen
         ext->glFramebufferTexture1D(target, attachment_point, GL_TEXTURE_1D, tobj->id(), _ximpl->level);
         break;
     case Pimpl::TEXTURE2D:
+    {
+#if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+        if (_ximpl->samples > 0 && ext->isMultisampledRenderToTextureSupported)
+        {
+            int samples = minimum(_ximpl->samples, RenderBuffer::getMaxSamples(contextID, ext));
+            ext->glFramebufferTexture2DMultisample(target, attachment_point, GL_TEXTURE_2D, tobj->id(), _ximpl->level, samples);
+
+            // TODO: EXT_multisampled_render_to_texture2 + ext->isMultisampledRenderToTexture2Supported
+            if (attachment_point != GL_COLOR_ATTACHMENT0_EXT)
+                OSG_WARN << "FramebufferTexture2DMultisampleEXT is called with an <attachment> that is not COLOR_ATTACHMENT0" << std::endl;
+
+            break;
+        }
+#endif
         ext->glFramebufferTexture2D(target, attachment_point, GL_TEXTURE_2D, tobj->id(), _ximpl->level);
         break;
+    }
     case Pimpl::TEXTURE2DMULTISAMPLE:
         ext->glFramebufferTexture2D(target, attachment_point, GL_TEXTURE_2D_MULTISAMPLE, tobj->id(), _ximpl->level);
         break;
