@@ -361,6 +361,9 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
             unsigned samples = 0;
             unsigned colorSamples = 0;
 
+            unsigned samplesMSRTT = 0;
+            unsigned colorSamplesMSRTT = 0;
+
             // This is not a cut and paste error. Set BOTH local masks
             // to the value of the Camera's use render buffers mask.
             // We'll change this if and only if we decide we're doing MSFBO.
@@ -387,11 +390,21 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
 
                 if (samples)
                 {
+                    #if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+                    if (ext->isMultisampledRenderToTextureSupported)	// TODO: improve condition (check Texture2D in attachment)
+                        // Perform multisampled rendering to a color renderable texture, without requiring an
+                        // explicit resolve of multisample data.
+                    {
+                        samplesMSRTT = samples;
+                        colorSamplesMSRTT = colorSamples;
+                    }
+                    #else
                     fbo_multisample = new osg::FrameBufferObject;
 
                     // Use the value of the Camera's use resolve buffers mask as the
                     // resolve mask.
                     resolveBuffersMask = _camera->getImplicitBufferAttachmentResolveMask(true);
+                    #endif
                 }
             }
 
@@ -456,7 +469,7 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
             {
                 // If doing MSFBO (and therefore need two FBOs, one for multisampled rendering and one for
                 // final resolve), then configure "fbo" as the resolve FBO, and When done
-                // configuring, swap it into "_resolveFbo" (see line 554). But, if not
+                // configuring, swap it into "_resolveFbo" (see line 583). But, if not
                 // using MSFBO, then "fbo" is just the render fbo.
                 // If using MSFBO, then resolveBuffersMask
                 // is the value set by the app for the resolve buffers. But if not using
@@ -464,7 +477,7 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
                 // buffers. In both cases, resolveBuffersMask is used to configure "fbo".
                 if( resolveBuffersMask & osg::Camera::IMPLICIT_DEPTH_BUFFER_ATTACHMENT )
                 {
-                    fbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(new osg::RenderBuffer(width, height, GL_DEPTH_COMPONENT24)));
+                    fbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(new osg::RenderBuffer(width, height, GL_DEPTH_COMPONENT24, samplesMSRTT, colorSamplesMSRTT)));
                     depthAttached = true;
                 }
                 if (fbo_multisample.valid() &&
@@ -479,7 +492,7 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
             {
                 if( resolveBuffersMask & osg::Camera::IMPLICIT_STENCIL_BUFFER_ATTACHMENT )
                 {
-                    fbo->setAttachment(osg::Camera::STENCIL_BUFFER, osg::FrameBufferAttachment(new osg::RenderBuffer(width, height, GL_STENCIL_INDEX8_EXT)));
+                    fbo->setAttachment(osg::Camera::STENCIL_BUFFER, osg::FrameBufferAttachment(new osg::RenderBuffer(width, height, GL_STENCIL_INDEX8_EXT, samplesMSRTT, colorSamplesMSRTT)));
                     stencilAttached = true;
                 }
                 if (fbo_multisample.valid() &&
@@ -495,7 +508,7 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
             {
                 if( resolveBuffersMask & osg::Camera::IMPLICIT_COLOR_BUFFER_ATTACHMENT )
                 {
-                    fbo->setAttachment(osg::Camera::COLOR_BUFFER, osg::FrameBufferAttachment(new osg::RenderBuffer(width, height, GL_RGB)));
+                    fbo->setAttachment(osg::Camera::COLOR_BUFFER, osg::FrameBufferAttachment(new osg::RenderBuffer(width, height, GL_RGB, samplesMSRTT, colorSamplesMSRTT)));
                     colorAttached = true;
                 }
                 if (fbo_multisample.valid() &&
@@ -513,13 +526,13 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
             // otherwise glCheckFramebufferStatus will fail
             // It has to be done after call to glBindFramebuffer (fbo->apply)
             // and before call to glCheckFramebufferStatus
+            #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GLES3_AVAILABLE)
             if ( !colorAttached )
             {
-            #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GLES3_AVAILABLE)
                 setDrawBuffer( GL_NONE, true );
                 state.glDrawBuffer( GL_NONE );
-            #endif
             }
+            #endif
 
             GLenum status = ext->glCheckFramebufferStatus(GL_FRAMEBUFFER_EXT);
 
