@@ -1445,29 +1445,40 @@ namespace GeometryUtilFunctions
 
 bool Geometry::checkForDeprecatedData()
 {
+    if (GeometryUtilFunctions::containsDeprecatedUsage(_vertexArray.get())         ||
+        GeometryUtilFunctions::containsDeprecatedUsage(_normalArray.get())         ||
+        GeometryUtilFunctions::containsDeprecatedUsage(_colorArray.get())          ||
+        GeometryUtilFunctions::containsDeprecatedUsage(_secondaryColorArray.get()) ||
+        GeometryUtilFunctions::containsDeprecatedUsage(_fogCoordArray.get()))
+    {
+        _containsDeprecatedData = true;
+
+        return true;
+    }
+
+    for (unsigned int ti = 0; ti < getNumTexCoordArrays(); ++ti)
+    {
+        if (GeometryUtilFunctions::containsDeprecatedUsage(_texCoordList[ti].get()))
+        {
+            _containsDeprecatedData = true;
+
+            return true;
+        }
+    }
+
+    for (unsigned int vi = 0; vi < getNumVertexAttribArrays(); ++vi)
+    {
+        if (GeometryUtilFunctions::containsDeprecatedUsage(_vertexAttribList[vi].get()))
+        {
+            _containsDeprecatedData = true;
+
+            return true;
+        }
+    }
+
     _containsDeprecatedData = false;
 
-    if (GeometryUtilFunctions::containsDeprecatedUsage(_vertexArray.get())) _containsDeprecatedData = true;
-
-    if (GeometryUtilFunctions::containsDeprecatedUsage(_normalArray.get())) _containsDeprecatedData = true;
-
-    if (GeometryUtilFunctions::containsDeprecatedUsage(_colorArray.get())) _containsDeprecatedData = true;
-
-    if (GeometryUtilFunctions::containsDeprecatedUsage(_secondaryColorArray.get())) _containsDeprecatedData = true;
-
-    if (GeometryUtilFunctions::containsDeprecatedUsage(_fogCoordArray.get())) _containsDeprecatedData = true;
-
-    for(unsigned int ti=0;ti<getNumTexCoordArrays();++ti)
-    {
-        if (GeometryUtilFunctions::containsDeprecatedUsage(_texCoordList[ti].get())) _containsDeprecatedData = true;
-    }
-
-    for(unsigned int vi=0;vi<getNumVertexAttribArrays();++vi)
-    {
-        if (GeometryUtilFunctions::containsDeprecatedUsage(_vertexAttribList[vi].get())) _containsDeprecatedData = true;
-    }
-
-    return _containsDeprecatedData;
+    return false;
 }
 
 
