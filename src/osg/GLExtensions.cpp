@@ -914,7 +914,7 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
 
 #if defined(__EMSCRIPTEN__)
     isTextureMaxLevelSupported = (glVersion >= 3.0f);    // WebGL 2.0 (OpenGL ES 3.0)
-    isTextureLODBiasSupported  = (glVersion >= 3.0f) || isGLExtensionSupported(contextID, "GL_EXT_texture_lod_bias");
+    isTextureLODBiasSupported  = isGLExtensionSupported(contextID, "GL_EXT_texture_lod_bias");
 #else
     isTextureMaxLevelSupported = (glVersion >= 1.2f);
     isTextureLODBiasSupported  = (glVersion >= 1.2f) || isGLExtensionSupported(contextID, "GL_EXT_texture_lod_bias");
