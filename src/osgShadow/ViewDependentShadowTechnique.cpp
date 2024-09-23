@@ -95,13 +95,14 @@ void ViewDependentShadowTechnique::cull(osgUtil::CullVisitor& cv)
 
     ViewData * vd = getViewDependentData( &cv );
 
-    if ( !vd || vd->_dirty || vd->_cv != &cv || vd->_st != this ) {
+    if ( !vd || vd->_dirty || vd->_cv->getIdentifier() != cv.getIdentifier() || vd->_st != this ) {
         vd = initViewDependentData( &cv, vd );
         setViewDependentData( &cv, vd );
     }
 
     if( vd ) {
         OpenThreads::ScopedLock<OpenThreads::Mutex> lock(vd->_mutex);
+        vd->_cv = &cv; // Another CullVisitor with the same Identifier will be used in the ViewData
         vd->cull();
     } else {
         osgShadow::ShadowTechnique::_shadowedScene->osg::Group::traverse(cv);
@@ -117,14 +118,14 @@ ViewDependentShadowTechnique::ViewData *
 ViewDependentShadowTechnique::getViewDependentData( osgUtil::CullVisitor * cv )
 {
     OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_viewDataMapMutex);
-    return _viewDataMap[ osg::Identifier::get(cv) ].get();
+    return _viewDataMap[ osg::Identifier::get(cv->getIdentifier()) ].get();
 }
 
 void ViewDependentShadowTechnique::setViewDependentData
     ( osgUtil::CullVisitor * cv, ViewData * data )
 {
     OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_viewDataMapMutex);
-    _viewDataMap[ osg::Identifier::get(cv) ] = data;
+    _viewDataMap[ osg::Identifier::get(cv->getIdentifier()) ] = data;
 }
 
 void ViewDependentShadowTechnique::ViewData::dirty( bool flag )
