@@ -66,6 +66,8 @@ void Identifier::objectDeleted(void* ptr)
 {
     if (_first==ptr || _second==ptr)
     {
+        osg::ref_ptr<Identifier> scoped(this); // prevent deadlock
+
         IdentifierKey key(_name, _number, _first, _second);
 
         {
