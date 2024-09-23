@@ -718,11 +718,14 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glGetBufferPointerv, "glGetBufferPointerv","glGetBufferPointervARB", validContext);
     setGLExtensionFuncPtr(glBindBufferRange, "glBindBufferRange", validContext);
     setGLExtensionFuncPtr(glBindBufferBase,  "glBindBufferBase", "glBindBufferBaseEXT", "glBindBufferBaseNV" , validContext);
-    setGLExtensionFuncPtr(glTexBuffer, "glTexBuffer","glTexBufferARB" , validContext);
+    setGLExtensionFuncPtr(glTexBuffer, "glTexBuffer", "glTexBufferARB", validContext);
+    if (!glTexBuffer) setGLExtensionFuncPtr(glTexBuffer, "glTexBufferEXT", "glTexBufferOES", validContext);
 
     isVBOSupported = validContext && (OSG_GLES2_FEATURES || OSG_GLES3_FEATURES || OSG_GL3_FEATURES || osg::isGLExtensionSupported(contextID,"GL_ARB_vertex_buffer_object"));
     isPBOSupported = validContext && ((OSG_GLES3_FEATURES && glVersion >= 3.0) || OSG_GL3_FEATURES || osg::isGLExtensionSupported(contextID,"GL_ARB_pixel_buffer_object"));
-    isTBOSupported = validContext && osg::isGLExtensionSupported(contextID,"GL_ARB_texture_buffer_object");
+    isTBOSupported = validContext && ((OSG_GL3_FEATURES && glVersion >= 3.1) ||
+                                      osg::isGLExtensionSupported(contextID, "GL_ARB_texture_buffer_object", "GL_EXT_texture_buffer_object") ||
+                                      ((OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && (glVersion >= 3.2 || osg::isGLExtensionSupported(contextID, "GL_EXT_texture_buffer", "GL_OES_texture_buffer"))));
     isVAOSupported = validContext && ((OSG_GLES3_FEATURES && glVersion >= 3.0) || OSG_GL3_FEATURES || osg::isGLExtensionSupported(contextID, "GL_ARB_vertex_array_object", "GL_OES_vertex_array_object"));
     isTransformFeedbackSupported = validContext && osg::isGLExtensionSupported(contextID, "GL_ARB_transform_feedback2");
     isBufferObjectSupported = isVBOSupported || isPBOSupported;

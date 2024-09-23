@@ -133,9 +133,13 @@ void TextureBuffer::setImage(Image* image)
 
 void TextureBuffer::apply(State& state) const
 {
-#if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE)
-    const unsigned int contextID = state.getContextID();
+#if !defined(OSG_GLES1_AVAILABLE)
+    const GLExtensions* extensions = state.get<GLExtensions>();
 
+    if (!extensions->isTBOSupported)    // Should we check it every frame?
+        return;
+
+    const unsigned int contextID = state.getContextID();
     TextureObject* textureObject = getTextureObject(contextID);
 
 ///This code could be useful but would require to watch BufferData changes
@@ -184,8 +188,6 @@ void TextureBuffer::apply(State& state) const
         GLBufferObject* glBufferObject = _bufferData->getBufferObject()->getOrCreateGLBufferObject(contextID);
         if (glBufferObject )
         {
-            const GLExtensions* extensions = state.get<GLExtensions>();
-
             _modifiedCount[contextID] = _bufferData->getModifiedCount();
 
             textureObject = generateAndAssignTextureObject(contextID, GL_TEXTURE_BUFFER);
@@ -207,7 +209,6 @@ void TextureBuffer::apply(State& state) const
         }
 
     }
-
 #else
     OSG_NOTICE<<"Warning: TextureBuffer::apply(State& state) not supported."<<std::endl;
 #endif
