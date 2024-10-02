@@ -797,7 +797,10 @@ void VertexArrayState::release()
 {
     VAS_NOTICE<<"VertexArrayState::release() "<<this<<std::endl;
 
-    osg::get<VertexArrayStateManager>(_ext->contextID)->release(this);
+    if (!GraphicsContext::getRegisteredGraphicsContexts(_ext->contextID).empty())
+        osg::get<VertexArrayStateManager>(_ext->contextID)->release(this);
+    else
+        OSG_WARN << "Cannot release VertexArrayState: Context " << _ext->contextID << " is not valid" << std::endl;
 }
 
 void VertexArrayState::setArray(ArrayDispatch* vad, osg::State& state, const osg::Array* new_array)
