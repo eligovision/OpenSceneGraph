@@ -1105,7 +1105,7 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glDeleteRenderbuffers, "glDeleteRenderbuffers", "glDeleteRenderbuffersEXT", "glDeleteRenderbuffersOES", validContext);
     setGLExtensionFuncPtr(glGenRenderbuffers, "glGenRenderbuffers", "glGenRenderbuffersEXT", "glGenRenderbuffersOES", validContext);
     setGLExtensionFuncPtr(glRenderbufferStorage, "glRenderbufferStorage", "glRenderbufferStorageEXT", "glRenderbufferStorageOES", validContext);
-    setGLExtensionFuncPtr(glRenderbufferStorageMultisample, "glRenderbufferStorageMultisample", "glRenderbufferStorageMultisampleEXT", "glRenderbufferStorageMultisampleOES", validContext);
+    setGLExtensionFuncPtr(glRenderbufferStorageMultisample, "glRenderbufferStorageMultisampleEXT", "glRenderbufferStorageMultisample", "glRenderbufferStorageMultisampleOES", validContext);
     if (isGLExtensionSupported(contextID, "GL_NV_framebuffer_multisample_coverage"))
         setGLExtensionFuncPtr(glRenderbufferStorageMultisampleCoverageNV, "glRenderbufferStorageMultisampleCoverageNV", validContext);
     else
@@ -1117,7 +1117,7 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
 
     setGLExtensionFuncPtr(glFramebufferTexture1D, "glFramebufferTexture1D", "glFramebufferTexture1DEXT", "glFramebufferTexture1DOES", validContext);
     setGLExtensionFuncPtr(glFramebufferTexture2D, "glFramebufferTexture2D", "glFramebufferTexture2DEXT", "glFramebufferTexture2DOES", validContext);
-    setGLExtensionFuncPtr(glFramebufferTexture2DMultisample, "glFramebufferTexture2DMultisample", "glFramebufferTexture2DMultisampleEXT", validContext);
+    setGLExtensionFuncPtr(glFramebufferTexture2DMultisample, "glFramebufferTexture2DMultisampleEXT", "glFramebufferTexture2DMultisample", validContext);
     setGLExtensionFuncPtr(glFramebufferTexture3D, "glFramebufferTexture3D", "glFramebufferTexture3DEXT", "glFramebufferTexture3DOES", validContext);
     setGLExtensionFuncPtr(glFramebufferTexture, "glFramebufferTexture", "glFramebufferTextureEXT", "glFramebufferTextureOES", validContext);
     setGLExtensionFuncPtr(glFramebufferTextureLayer, "glFramebufferTextureLayer", "glFramebufferTextureLayerEXT", "glFramebufferTextureLayerOES", validContext);
