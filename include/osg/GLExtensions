@@ -545,6 +545,9 @@ class OSG_EXPORT GLExtensions : public osg::Referenced
         bool isClientStorageSupported;
         bool isTextureIntegerEXTSupported;
         bool isTextureStorageEnabled;
+        bool isTextureRGSupported;
+        bool isTextureFloatLinearSupported;
+        bool isTextureHalfFloatLinearSupported;
 
         bool isTexStorage2DSupported() const { return glTexStorage2D != 0; }
         bool isCompressedTexImage2DSupported() const { return glCompressedTexImage2D!=0; }
@@ -667,7 +670,10 @@ class OSG_EXPORT GLExtensions : public osg::Referenced
         // FrameBuferObject
         bool isFrameBufferObjectSupported;
         bool isPackedDepthStencilSupported;
+        bool isRenderToFloatTextureSupported;
+        bool isRenderToHalfFloatTextureSupported;
         bool isMultisampledRenderToTextureSupported;
+        bool isMultisampledRenderToTexture2Supported;
         bool isInvalidateFramebufferSupported;
 
         bool isRenderbufferMultisampleSupported() const { return glRenderbufferStorageMultisample != 0; }

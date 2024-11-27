@@ -932,6 +932,13 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
             isTextureStorageEnabled = false;
     }
 
+
+    // TODO: improve for OSG_GL2_FEATURES
+    isTextureRGSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_EXT_texture_rg", "ARB_texture_rg"));
+    isTextureFloatLinearSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_OES_texture_float_linear"));
+    isTextureHalfFloatLinearSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_OES_texture_half_float_linear"));
+
+
     setGLExtensionFuncPtr(glTexStorage1D,"glTexStorage1D","glTexStorage1DARB", validContext);
     setGLExtensionFuncPtr(glTextureStorage1D,"glTextureStorage1D","glTextureStorage1DARB", validContext);
     setGLExtensionFuncPtr(glTexStorage2D,"glTexStorage2D","glTexStorage2DARB", validContext);
@@ -1095,10 +1102,13 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
 
     setGLExtensionFuncPtr(glSampleCoverage, "glSampleCoverage", "glSampleCoverageARB", validContext);
 
-
     // FrameBufferObject
+    // TODO: improve for OSG_GL2_FEATURES
+    isRenderToFloatTextureSupported     = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_EXT_color_buffer_float"));
+    isRenderToHalfFloatTextureSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_EXT_color_buffer_half_float"));
+
     isMultisampledRenderToTextureSupported = validContext && isGLExtensionSupported(contextID, "GL_EXT_multisampled_render_to_texture");
-    bool isMultisampledRenderToTexture2Supported = isMultisampledRenderToTextureSupported && isGLExtensionSupported(contextID, "GL_EXT_multisampled_render_to_texture2");	// TODO: member of class
+    isMultisampledRenderToTexture2Supported = isMultisampledRenderToTextureSupported && isGLExtensionSupported(contextID, "GL_EXT_multisampled_render_to_texture2");	// TODO: member of class
     isInvalidateFramebufferSupported = validContext && (isGLExtensionSupported(contextID, "GL_ARB_invalidate_subdata") || (OSG_GLES3_FEATURES && glVersion >= 3.0) || glVersion >= 4.3);
 
     setGLExtensionFuncPtr(glBindRenderbuffer, "glBindRenderbuffer", "glBindRenderbufferEXT", "glBindRenderbufferOES", validContext);
