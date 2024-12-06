@@ -717,7 +717,10 @@ void FrameBufferObject::apply(State &state, BindTarget target) const
 
     if (_attachments.empty())
     {
-        ext->glBindFramebuffer(target, 0);
+        // switch off the frame buffer object
+        GLuint fboId = state.getGraphicsContext() ? state.getGraphicsContext()->getDefaultFboId() : 0;
+
+        ext->glBindFramebuffer(target, fboId);
         return;
     }
 

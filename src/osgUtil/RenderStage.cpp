@@ -398,13 +398,15 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
                         samplesMSRTT = samples;
                         colorSamplesMSRTT = colorSamples;
                     }
-                    #else
-                    fbo_multisample = new osg::FrameBufferObject;
-
-                    // Use the value of the Camera's use resolve buffers mask as the
-                    // resolve mask.
-                    resolveBuffersMask = _camera->getImplicitBufferAttachmentResolveMask(true);
+                    else
                     #endif
+                    {
+                        fbo_multisample = new osg::FrameBufferObject;
+
+                        // Use the value of the Camera's use resolve buffers mask as the
+                        // resolve mask.
+                        resolveBuffersMask = _camera->getImplicitBufferAttachmentResolveMask(true);
+                    }
                 }
             }
 
