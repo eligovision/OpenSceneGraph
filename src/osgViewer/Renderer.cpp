@@ -547,7 +547,7 @@ void Renderer::updateSceneView(osgUtil::SceneView* sceneView)
     {
         (*sceneView->getFrameStamp()) = *(view->getFrameStamp());
     }
-    else if (state->getFrameStamp())
+    else if (state && state->getFrameStamp())
     {
         (*sceneView->getFrameStamp()) = *(state->getFrameStamp());
     }

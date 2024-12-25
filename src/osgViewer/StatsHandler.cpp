@@ -115,7 +115,15 @@ StatsHandler::StatsHandler():
     _camera = new osg::Camera;
     _camera->getOrCreateStateSet()->setGlobalDefaults();
     _camera->setRenderer(new Renderer(_camera.get()));
+
     _camera->setProjectionResizePolicy(osg::Camera::FIXED);
+    _camera->setRenderOrder(osg::Camera::POST_RENDER, 10);
+    _camera->setReferenceFrame(osg::Transform::ABSOLUTE_RF);
+    _camera->setViewMatrix(osg::Matrix::identity());
+
+    // only clear the depth buffer
+    _camera->setClearMask(0);
+    _camera->setAllowEventFocus(false);
 
     osg::DisplaySettings::ShaderHint shaderHint = osg::DisplaySettings::instance()->getShaderHint();
     if (shaderHint==osg::DisplaySettings::SHADER_GL3 || shaderHint==osg::DisplaySettings::SHADER_GLES3)
@@ -355,6 +363,8 @@ void StatsHandler::updateThreadingModelText()
     }
 }
 
+// This method should not be called while Viewer is running (in DrawThreadPerContext threading model at least)
+// Can be used in GraphicsOperation while Viewer is running as instance.
 void StatsHandler::reset()
 {
     _initialized = false;
@@ -413,18 +423,9 @@ void StatsHandler::setUpHUDCamera(osgViewer::ViewerBase* viewer)
     }
 
     _camera->setGraphicsContext(context);
-
-    _camera->setRenderOrder(osg::Camera::POST_RENDER, 10);
-
-    _camera->setReferenceFrame(osg::Transform::ABSOLUTE_RF);
-    _camera->setViewMatrix(osg::Matrix::identity());
-    setWindowSize(context->getTraits()->width, context->getTraits()->height);
-
-    // only clear the depth buffer
-    _camera->setClearMask(0);
-    _camera->setAllowEventFocus(false);
-
     _camera->setRenderer(new Renderer(_camera.get()));
+
+    setWindowSize(context->getTraits()->width, context->getTraits()->height);
 
     _initialized = true;
 }
@@ -461,7 +462,7 @@ struct AveragedValueTextDrawCallback : public virtual osg::Drawable::DrawCallbac
     /** do customized draw code.*/
     virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
     {
-        osgText::Text* text = (osgText::Text*)drawable;
+        osg::ref_ptr<osgText::Text> text = (osgText::Text*)drawable;
 
         osg::Timer_t tick = osg::Timer::instance()->tick();
         double delta = osg::Timer::instance()->delta_m(_tickLastUpdated, tick);
@@ -507,7 +508,7 @@ struct RawValueTextDrawCallback : public virtual osg::Drawable::DrawCallback
     /** do customized draw code.*/
     virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
     {
-        osgText::Text* text = (osgText::Text*)drawable;
+        osg::ref_ptr<osgText::Text> text = (osgText::Text*)drawable;
 
         osg::Timer_t tick = osg::Timer::instance()->tick();
         double delta = osg::Timer::instance()->delta_m(_tickLastUpdated, tick);
@@ -553,7 +554,7 @@ struct CameraSceneStatsTextDrawCallback : public virtual osg::Drawable::DrawCall
     {
         if (!_camera) return;
 
-        osgText::Text* text = (osgText::Text*)drawable;
+        osg::ref_ptr<osgText::Text> text = (osgText::Text*)drawable;
 
         osg::Timer_t tick = osg::Timer::instance()->tick();
         double delta = osg::Timer::instance()->delta_m(_tickLastUpdated, tick);
@@ -645,7 +646,7 @@ struct ViewSceneStatsTextDrawCallback : public virtual osg::Drawable::DrawCallba
     {
         if (!_view) return;
 
-        osgText::Text* text = (osgText::Text*)drawable;
+        osg::ref_ptr<osgText::Text> text = (osgText::Text*)drawable;
 
         osg::Timer_t tick = osg::Timer::instance()->tick();
         double delta = osg::Timer::instance()->delta_m(_tickLastUpdated, tick);
@@ -735,7 +736,7 @@ struct BlockDrawCallback : public virtual osg::Drawable::DrawCallback
     /** do customized draw code.*/
     virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
     {
-        osg::Geometry* geom = (osg::Geometry*)drawable;
+        osg::ref_ptr<osg::Geometry> geom = (osg::Geometry*)drawable;
         osg::Vec3Array* vertices = (osg::Vec3Array*)geom->getVertexArray();
 
         int frameNumber = renderInfo.getState()->getFrameStamp()->getFrameNumber();
@@ -879,6 +880,8 @@ protected:
 
         virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
         {
+            osg::ref_ptr<const osg::Drawable> scoped(drawable);
+
             unsigned int frameNumber = renderInfo.getState()->getFrameStamp()->getFrameNumber();
 
             // Get stats
@@ -1013,6 +1016,8 @@ struct FrameMarkerDrawCallback : public virtual osg::Drawable::DrawCallback
     /** do customized draw code.*/
     virtual void drawImplementation(osg::RenderInfo& renderInfo,const osg::Drawable* drawable) const
     {
+        osg::ref_ptr<const osg::Drawable> scoped(drawable);
+
         osg::Geometry* geom = (osg::Geometry*)drawable;
         osg::Vec3Array* vertices = (osg::Vec3Array*)geom->getVertexArray();
 

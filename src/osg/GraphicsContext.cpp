@@ -695,7 +695,8 @@ void GraphicsContext::runOperations()
             ++itr)
         {
             osg::ref_ptr<osg::Camera> camera = *itr;
-            if (camera->getRenderer()) (*(camera->getRenderer()))(this);
+            osg::ref_ptr<osg::GraphicsOperation> renderer = camera->getRenderer(); // ref_ptr should be used!
+            if (renderer) (*renderer)(this);
         }
     }
 
