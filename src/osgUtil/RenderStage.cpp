@@ -15,6 +15,7 @@
 #include <osg/Notify>
 #include <osg/Texture1D>
 #include <osg/Texture2D>
+#include <osg/Texture2DArray>
 #include <osg/Texture2DMultisample>
 #include <osg/Texture3D>
 #include <osg/TextureRectangle>
@@ -291,6 +292,7 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
             osg::Texture1D* texture1D = 0;
             osg::Texture2D* texture2D = 0;
             osg::Texture2DMultisample* texture2DMS = 0;
+            osg::Texture2DArray* texture2DArray = 0;
             osg::Texture3D* texture3D = 0;
             osg::TextureCubeMap* textureCubeMap = 0;
             osg::TextureRectangle* textureRectangle = 0;
@@ -313,6 +315,18 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
                 if (texture2DMS->getTextureWidth()==0 || texture2DMS->getTextureHeight()==0)
                 {
                     texture2DMS->setTextureSize(width,height);
+                }
+            }
+            else if (0 != (texture2DArray = dynamic_cast<osg::Texture2DArray*>(texture)))
+            {
+                if (texture2DArray->getTextureWidth()==0 || texture2DArray->getTextureHeight()==0)
+                {
+                    texture2DArray->setTextureWidth(width);
+                    texture2DArray->setTextureHeight(height);
+                }
+                if (texture2DArray->getTextureDepth() == 0)
+                {
+                    OSG_WARN << "Attached Texture2DArray depth is not defined" << std::endl;
                 }
             }
             else if (0 != (texture3D = dynamic_cast<osg::Texture3D*>(texture)))
@@ -540,7 +554,7 @@ void RenderStage::runCameraSetUp(osg::RenderInfo& renderInfo)
 
             if (status != GL_FRAMEBUFFER_COMPLETE_EXT)
             {
-                OSG_NOTICE<<"RenderStage::runCameraSetUp(), FBO setup failed, FBO status= 0x"<<std::hex<<status<<std::dec<<std::endl;
+                OSG_WARN<<"RenderStage::runCameraSetUp(), FBO setup failed, FBO status= 0x"<<std::hex<<status<<std::dec<<std::endl;
 
                 fbo_supported = false;
                 GLuint fboId = state.getGraphicsContext() ? state.getGraphicsContext()->getDefaultFboId() : 0;

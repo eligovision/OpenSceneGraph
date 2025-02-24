@@ -353,11 +353,13 @@ class OSG_EXPORT Camera : public Transform, public CullSettings
 
         /** Attach a Texture to specified buffer component.
           * The level parameter controls the mip map level of the texture that is attached.
-          * The face parameter controls the face of texture cube map or z level of 3d texture.
-          * The mipMapGeneration flag controls whether mipmap generation should be done for texture.*/
+          * The face parameter controls the face of texture cube map or z level of 3d texture, baseViewIndex for texture 2d array.
+          * The mipMapGeneration flag controls whether mipmap generation should be done for texture.
+          * The numViews used for multiview.*/
         void attach(BufferComponent buffer, osg::Texture* texture, unsigned int level = 0, unsigned int face=0, bool mipMapGeneration=false,
             unsigned int multisampleSamples = 0,
-            unsigned int multisampleColorSamples = 0);
+            unsigned int multisampleColorSamples = 0,
+            unsigned int numViews = 0);
 
         /** Attach a Image to specified buffer component.*/
         void attach(BufferComponent buffer, osg::Image* image,
@@ -375,7 +377,9 @@ class OSG_EXPORT Camera : public Transform, public CullSettings
                 _face(0),
                 _mipMapGeneration(false),
                 _multisampleSamples(0),
-                _multisampleColorSamples(0) {}
+                _multisampleColorSamples(0),
+                _numViews(0) {}
+
 
             int width() const
             {
@@ -402,10 +406,14 @@ class OSG_EXPORT Camera : public Transform, public CullSettings
             ref_ptr<Image>      _image;
             ref_ptr<Texture>    _texture;
             unsigned int        _level;
-            unsigned int        _face;
+            union {
+                unsigned int        _face;
+                unsigned int        _baseViewIndex;     // multiview
+            };
             bool                _mipMapGeneration;
             unsigned int        _multisampleSamples;
             unsigned int        _multisampleColorSamples;
+            unsigned int        _numViews;              // multiview
         };
 
         typedef std::map< BufferComponent, Attachment> BufferAttachmentMap;

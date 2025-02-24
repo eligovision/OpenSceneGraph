@@ -215,17 +215,20 @@ struct FrameBufferAttachment::Pimpl
     TargetType targetType;
     ref_ptr<RenderBuffer> renderbufferTarget;
     ref_ptr<Texture> textureTarget;
-    unsigned int cubeMapFace;
+    union {
+        unsigned int cubeMapFace;
+        unsigned int numViews; // for multiview (can be used for TEXTURE_2D_ARRAY target only)
+    };
     unsigned int level;
-    unsigned int zoffset;
+    unsigned int zoffset;      // baseViewIndex for multiview
     int samples;
 
-    explicit Pimpl(TargetType ttype = RENDERBUFFER, unsigned int lev = 0, int samples = 0)
+    explicit Pimpl(TargetType ttype = RENDERBUFFER, unsigned int lev = 0, int smpls = 0)
     :   targetType(ttype),
         cubeMapFace(0),
         level(lev),
         zoffset(0),
-        samples(samples)
+        samples(smpls)
     {
     }
 
@@ -283,11 +286,13 @@ FrameBufferAttachment::FrameBufferAttachment(Texture3D* target, unsigned int zof
     _ximpl->zoffset = zoffset;
 }
 
-FrameBufferAttachment::FrameBufferAttachment(Texture2DArray* target, unsigned int layer, unsigned int level)
+// TODO: samples
+FrameBufferAttachment::FrameBufferAttachment(Texture2DArray* target, unsigned int layer, unsigned int level, unsigned int numViews)
 {
     _ximpl = new Pimpl(Pimpl::TEXTURE2DARRAY, level);
     _ximpl->textureTarget = target;
     _ximpl->zoffset = layer;
+    _ximpl->numViews = numViews;
 }
 
 FrameBufferAttachment::FrameBufferAttachment(TextureCubeMap* target, unsigned int face, unsigned int level)
@@ -347,7 +352,9 @@ FrameBufferAttachment::FrameBufferAttachment(Camera::Attachment& attachment)
         {
             _ximpl = new Pimpl(Pimpl::TEXTURE2DARRAY, attachment._level);
             _ximpl->textureTarget = texture2DArray;
-            _ximpl->zoffset = attachment._face;
+            _ximpl->samples = attachment._multisampleSamples;
+            _ximpl->zoffset = attachment._face;        // baseViewIndex
+            _ximpl->numViews = attachment._numViews;
             return;
         }
 
@@ -509,7 +516,15 @@ void FrameBufferAttachment::attach(State &state, GLenum target, GLenum attachmen
             ext->glFramebufferTexture3D(target, attachment_point, GL_TEXTURE_3D, tobj->id(), _ximpl->level, _ximpl->zoffset);
         break;
     case Pimpl::TEXTURE2DARRAY:
-        if (_ximpl->zoffset == Camera::FACE_CONTROLLED_BY_GEOMETRY_SHADER)
+        if ((ext->isMultiviewSupported || ext->isMultiview2Supported) && _ximpl->numViews > 1)
+            // Multiview
+        {
+            if (_ximpl->samples > 0 && ext->isMultiviewMultisampledRenderToTextureSupported && ext->glFramebufferTextureMultisampleMultiviewOVR != NULL)
+                ext->glFramebufferTextureMultisampleMultiviewOVR(target, attachment_point, tobj->id(), _ximpl->level, _ximpl->samples, _ximpl->zoffset, _ximpl->numViews);
+            else if (ext->glFramebufferTextureMultiviewOVR != NULL)
+                ext->glFramebufferTextureMultiviewOVR(target, attachment_point, tobj->id(), _ximpl->level, _ximpl->zoffset, _ximpl->numViews);
+        }
+        else if (_ximpl->zoffset == Camera::FACE_CONTROLLED_BY_GEOMETRY_SHADER)
             ext->glFramebufferTexture(target, attachment_point, tobj->id(), _ximpl->level);
         else
             ext->glFramebufferTextureLayer(target, attachment_point, tobj->id(), _ximpl->level, _ximpl->zoffset);
@@ -541,6 +556,8 @@ int FrameBufferAttachment::compare(const FrameBufferAttachment &fa) const
     if (_ximpl->level > fa._ximpl->level) return 1;
     if (_ximpl->zoffset < fa._ximpl->zoffset) return -1;
     if (_ximpl->zoffset > fa._ximpl->zoffset) return 1;
+    if (_ximpl->numViews < fa._ximpl->numViews) return -1;
+    if (_ximpl->numViews > fa._ximpl->numViews) return 1;
     return 0;
 }
 
