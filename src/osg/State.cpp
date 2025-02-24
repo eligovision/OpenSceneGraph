@@ -41,6 +41,50 @@ using namespace osg;
 
 static ApplicationUsageProxy State_e0(ApplicationUsage::ENVIRONMENTAL_VARIABLE,"OSG_GL_ERROR_CHECKING <type>","ONCE_PER_ATTRIBUTE | ON | on enables fine grained checking,  ONCE_PER_FRAME enables coarse grained checking");
 
+State::TransformUniformsProxy::TransformUniformsProxy(State* state)
+:   _state(state)
+{
+}
+
+State::TransformUniformsProxy::~TransformUniformsProxy()
+{
+}
+
+void State::TransformUniformsProxy::updateModelViewAndProjectionMatrixUniforms()
+{
+    if (_state->_modelViewProjectionMatrixUniform.valid())
+        _state->_modelViewProjectionMatrixUniform->set((*_state->_modelView) * (*_state->_projection));
+
+    if (_state->_normalMatrixUniform.valid())
+    {
+        Matrix mv(*_state->_modelView);
+        mv.setTrans(0.0, 0.0, 0.0);
+
+        Matrix matrix;
+        matrix.invert(mv);
+
+        Matrix3 normalMatrix(matrix(0,0), matrix(1,0), matrix(2,0),
+                             matrix(0,1), matrix(1,1), matrix(2,1),
+                             matrix(0,2), matrix(1,2), matrix(2,2));
+
+        _state->_normalMatrixUniform->set(normalMatrix);
+    }
+}
+
+void State::TransformUniformsProxy::applyModelViewAndProjectionUniformsIfRequired()
+{
+    if (!_state->_lastAppliedProgramObject) return;
+
+    if (_state->_modelViewMatrixUniform)
+        _state->_lastAppliedProgramObject->apply(*_state->_modelViewMatrixUniform);
+    if (_state->_projectionMatrixUniform)
+        _state->_lastAppliedProgramObject->apply(*_state->_projectionMatrixUniform);
+    if (_state->_modelViewProjectionMatrixUniform)
+        _state->_lastAppliedProgramObject->apply(*_state->_modelViewProjectionMatrixUniform);
+    if (_state->_normalMatrixUniform)
+        _state->_lastAppliedProgramObject->apply(*_state->_normalMatrixUniform);
+}
+
 State::State():
     Referenced(true)
 {
@@ -73,6 +117,8 @@ State::State():
     _projectionMatrixUniform = new Uniform(Uniform::FLOAT_MAT4,"osg_ProjectionMatrix");
     _modelViewProjectionMatrixUniform = new Uniform(Uniform::FLOAT_MAT4,"osg_ModelViewProjectionMatrix");
     _normalMatrixUniform = new Uniform(Uniform::FLOAT_MAT3,"osg_NormalMatrix");
+
+    _transformUniformsProxy = new TransformUniformsProxy(this);
 
     resetVertexAttributeAlias();
 
@@ -1216,15 +1262,10 @@ bool State::checkGLErrors(const StateAttribute* attribute) const
     return false;
 }
 
-
 void State::applyModelViewAndProjectionUniformsIfRequired()
 {
-    if (!_lastAppliedProgramObject) return;
-
-    if (_modelViewMatrixUniform.valid()) _lastAppliedProgramObject->apply(*_modelViewMatrixUniform);
-    if (_projectionMatrixUniform) _lastAppliedProgramObject->apply(*_projectionMatrixUniform);
-    if (_modelViewProjectionMatrixUniform) _lastAppliedProgramObject->apply(*_modelViewProjectionMatrixUniform);
-    if (_normalMatrixUniform) _lastAppliedProgramObject->apply(*_normalMatrixUniform);
+    if (_transformUniformsProxy)
+        _transformUniformsProxy->applyModelViewAndProjectionUniformsIfRequired();
 }
 
 namespace State_Utils
@@ -1467,21 +1508,8 @@ void State::applyModelViewMatrix(const osg::Matrix& matrix)
 
 void State::updateModelViewAndProjectionMatrixUniforms()
 {
-    if (_modelViewProjectionMatrixUniform.valid()) _modelViewProjectionMatrixUniform->set((*_modelView) * (*_projection));
-    if (_normalMatrixUniform.valid())
-    {
-        Matrix mv(*_modelView);
-        mv.setTrans(0.0, 0.0, 0.0);
-
-        Matrix matrix;
-        matrix.invert(mv);
-
-        Matrix3 normalMatrix(matrix(0,0), matrix(1,0), matrix(2,0),
-                             matrix(0,1), matrix(1,1), matrix(2,1),
-                             matrix(0,2), matrix(1,2), matrix(2,2));
-
-        _normalMatrixUniform->set(normalMatrix);
-    }
+    if (_transformUniformsProxy.valid())
+        _transformUniformsProxy->updateModelViewAndProjectionMatrixUniforms();
 }
 
 void State::drawQuads(GLint first, GLsizei count, GLsizei primCount)

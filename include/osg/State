@@ -80,6 +80,20 @@ class OSG_EXPORT State : public Referenced
 {
     public :
 
+        class TransformUniformsProxy : public Referenced
+        {
+        public:
+            TransformUniformsProxy(State* state);
+
+            virtual void updateModelViewAndProjectionMatrixUniforms();
+            virtual void applyModelViewAndProjectionUniformsIfRequired();
+
+        protected:
+            virtual ~TransformUniformsProxy();
+
+            osg::State* _state;
+        };
+
         State();
 
 
@@ -240,13 +254,15 @@ class OSG_EXPORT State : public Referenced
         bool getUseModelViewAndProjectionUniforms() const { return _useModelViewAndProjectionUniforms; }
 
         void updateModelViewAndProjectionMatrixUniforms();
-
         void applyModelViewAndProjectionUniformsIfRequired();
 
         osg::Uniform* getModelViewMatrixUniform() { return _modelViewMatrixUniform.get(); }
         osg::Uniform* getProjectionMatrixUniform() { return _projectionMatrixUniform.get(); }
         osg::Uniform* getModelViewProjectionMatrixUniform() { return _modelViewProjectionMatrixUniform.get(); }
         osg::Uniform* getNormalMatrixUniform() { return _normalMatrixUniform.get(); }
+
+        void setTransformUniformsProxy(TransformUniformsProxy* tuProxy) { _transformUniformsProxy = tuProxy; }
+        TransformUniformsProxy* getTransformUniformsProxy() const { return _transformUniformsProxy; }
 
 
         Polytope getViewFrustum() const;
@@ -1079,6 +1095,7 @@ class OSG_EXPORT State : public Referenced
         bool supportsShaderRequirement(const std::string& shaderRequirement);
 
     protected:
+        friend class TransformUniformsProxy;
 
         virtual ~State();
 
@@ -1110,6 +1127,7 @@ class OSG_EXPORT State : public Referenced
         ref_ptr<Uniform>            _projectionMatrixUniform;
         ref_ptr<Uniform>            _modelViewProjectionMatrixUniform;
         ref_ptr<Uniform>            _normalMatrixUniform;
+        ref_ptr<TransformUniformsProxy> _transformUniformsProxy;
 
         Matrix                      _initialInverseViewMatrix;
 
