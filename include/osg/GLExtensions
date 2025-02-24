@@ -676,6 +676,10 @@ class OSG_EXPORT GLExtensions : public osg::Referenced
         bool isMultisampledRenderToTexture2Supported;
         bool isInvalidateFramebufferSupported;
 
+        bool isMultiviewSupported;
+        bool isMultiview2Supported;
+        bool isMultiviewMultisampledRenderToTextureSupported;
+
         bool isRenderbufferMultisampleSupported() const { return glRenderbufferStorageMultisample != 0; }
         bool isRenderbufferMultisampleCoverageSupported() const { return glRenderbufferStorageMultisampleCoverageNV != 0; }
 
@@ -703,6 +707,9 @@ class OSG_EXPORT GLExtensions : public osg::Referenced
         void (GL_APIENTRY * glBlitFramebuffer) (GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLbitfield, GLenum);
         void (GL_APIENTRY * glInvalidateFramebuffer) (GLenum, GLsizei, const GLenum*); // GL_ARB_invalidate_subdata or GL 4.3 or GLES 3
         void (GL_APIENTRY * glGetRenderbufferParameteriv) (GLenum, GLenum, GLint*);
+
+        void (GL_APIENTRY * glFramebufferTextureMultiviewOVR) (GLenum target, GLenum attachment, GLuint texture, GLint level, GLint baseViewIndex, GLsizei numViews);
+        void (GL_APIENTRY * glFramebufferTextureMultisampleMultiviewOVR) (GLenum target, GLenum attachment, GLuint texture, GLint level, GLsizei samples, GLint baseViewIndex, GLsizei numViews);
 
         //ARB_framebuffer_no_attachments
         void (GL_APIENTRY * glFramebufferParameteri)(GLenum target, GLenum pname, GLint param);

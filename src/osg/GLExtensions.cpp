@@ -888,7 +888,7 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     isTextureBorderClampSupported = validContext &&
                                     (OSG_GL3_FEATURES ||
                                      ((OSG_GL1_FEATURES || OSG_GL2_FEATURES) && isGLExtensionOrVersionSupported(contextID,"GL_ARB_texture_border_clamp", 1.3f)) ||
-                                     ((OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && isGLExtensionSupported(contextID,"GL_EXT_texture_border_clamp")));
+                                     ((OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && isGLExtensionSupported(contextID,"GL_EXT_texture_border_clamp", "GL_OES_texture_border_clamp")));
 
     isGenerateMipMapSupported = validContext && (builtInSupport || isGLExtensionOrVersionSupported(contextID,"GL_SGIS_generate_mipmap", 1.4f));
     preferGenerateMipmapSGISForPowerOfTwo = (radeonHardwareDetected||fireGLHardwareDetected) ? false : true;
@@ -983,7 +983,9 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glEndConditionalRender, "glEndConditionalRender", "glEndConditionalRenderARB");
 
     // Texture2DArray extensions
-    isTexture2DArraySupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID,"GL_EXT_texture_array"));
+    isTexture2DArraySupported = validContext && (OSG_GL3_FEATURES ||
+                                                 isGLExtensionSupported(contextID,"GL_EXT_texture_array") ||
+                                                 ((OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && glVersion >= 3.0));
 
     max2DSize = 0;
     if (validContext) glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max2DSize);
@@ -1111,6 +1113,10 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     isMultisampledRenderToTexture2Supported = isMultisampledRenderToTextureSupported && isGLExtensionSupported(contextID, "GL_EXT_multisampled_render_to_texture2");	// TODO: member of class
     isInvalidateFramebufferSupported = validContext && (isGLExtensionSupported(contextID, "GL_ARB_invalidate_subdata") || (OSG_GLES3_FEATURES && glVersion >= 3.0) || glVersion >= 4.3);
 
+    isMultiviewSupported = validContext && isGLExtensionSupported(contextID, "GL_OVR_multiview");
+    isMultiview2Supported = validContext && isGLExtensionSupported(contextID, "GL_OVR_multiview2");
+    isMultiviewMultisampledRenderToTextureSupported = validContext && isGLExtensionSupported(contextID, "GL_OVR_multiview_multisampled_render_to_texture");
+
     setGLExtensionFuncPtr(glBindRenderbuffer, "glBindRenderbuffer", "glBindRenderbufferEXT", "glBindRenderbufferOES", validContext);
     setGLExtensionFuncPtr(glDeleteRenderbuffers, "glDeleteRenderbuffers", "glDeleteRenderbuffersEXT", "glDeleteRenderbuffersOES", validContext);
     setGLExtensionFuncPtr(glGenRenderbuffers, "glGenRenderbuffers", "glGenRenderbuffersEXT", "glGenRenderbuffersOES", validContext);
@@ -1133,6 +1139,10 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glFramebufferTextureLayer, "glFramebufferTextureLayer", "glFramebufferTextureLayerEXT", "glFramebufferTextureLayerOES", validContext);
     setGLExtensionFuncPtr(glFramebufferTextureFace,  "glFramebufferTextureFace", "glFramebufferTextureFaceEXT", "glFramebufferTextureFaceOES" , validContext);
     setGLExtensionFuncPtr(glFramebufferRenderbuffer, "glFramebufferRenderbuffer", "glFramebufferRenderbufferEXT", "glFramebufferRenderbufferOES", validContext);
+
+    setGLExtensionFuncPtr(glFramebufferTextureMultiviewOVR, "glFramebufferTextureMultiviewOVR", validContext);
+    setGLExtensionFuncPtr(glFramebufferTextureMultisampleMultiviewOVR, "glFramebufferTextureMultisampleMultiviewOVR", validContext);
+
     //ARB_framebuffer_no_attachments
     //OpenGL 4.3
     setGLExtensionFuncPtr(glFramebufferParameteri, "glFramebufferParameteri", "glFramebufferParameteriARB", "glFramebufferParameteriOES", validContext);
@@ -1145,7 +1155,6 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glBlitFramebuffer, "glBlitFramebuffer", "glBlitFramebufferEXT", "glBlitFramebufferOES", validContext);
     setGLExtensionFuncPtr(glInvalidateFramebuffer, "glInvalidateFramebuffer", "glInvalidateFramebufferEXT", validContext);
     setGLExtensionFuncPtr(glGetRenderbufferParameteriv, "glGetRenderbufferParameteriv", "glGetRenderbufferParameterivEXT", "glGetRenderbufferParameterivOES", validContext);
-
 
     isFrameBufferObjectSupported =
         glBindRenderbuffer != 0 &&
