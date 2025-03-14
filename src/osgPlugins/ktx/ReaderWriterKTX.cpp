@@ -13,6 +13,7 @@
 
 #include "ReaderWriterKTX.h"
 #include <osg/Endian>
+#include <osg/TextureCubeMap>
 #include <osgDB/FileNameUtils>
 #include <osgDB/FileUtils>
 #include <istream>
@@ -33,6 +34,13 @@
 #include <stdio.h>
 #define DELETEFILE(file) remove((file))
 
+#endif
+
+#ifndef GL_R11F_G11F_B10F
+#   define GL_R11F_G11F_B10F 0x8C3A
+#endif
+#ifndef GL_UNSIGNED_INT_10F_11F_11F_REV
+#   define GL_UNSIGNED_INT_10F_11F_11F_REV 0x8C3B
 #endif
 
 const unsigned char ReaderWriterKTX::FileSignature[12] = {
@@ -106,114 +114,197 @@ osgDB::ReaderWriter::ReadResult ReaderWriterKTX::readKTXStream(std::istream& fin
         return ReadResult(ReadResult::FILE_NOT_HANDLED);
     }
 
-    if(header.numberOfFaces != 1) //if this is a cube map
+    osg::ref_ptr<osg::TextureCubeMap> textureCubeMap;
+    if (header.numberOfFaces != 1)
     {
-        OSG_WARN << "Cube maps cannot be read directly from KTX files." << std::endl;
-        return ReadResult(ReadResult::FILE_NOT_HANDLED);
+        if (header.numberOfFaces == 6)
+        {
+            OSG_WARN << "TextureCubeMap detected!" << std::endl;
+            textureCubeMap = new osg::TextureCubeMap;
+        }
+        else
+        {
+            OSG_WARN << "Texture2D and TextureCubeMap supported only!" << std::endl;
+
+            return ReadResult(ReadResult::FILE_NOT_HANDLED);
+        }
     }
 
     if (header.numberOfMipmapLevels == 0)
         header.numberOfMipmapLevels = 1;
 
-    //read keyvalue data. Will be ignoring for now
+
+    // NOTE: https://registry.khronos.org/KTX/specs/1.0/ktxspec.v1.html
+
+    // for each keyValuePair that fits in bytesOfKeyValueData
+    //     UInt32   keyAndValueByteSize
+    //     Byte     keyAndValue[keyAndValueByteSize]
+    //     Byte     valuePadding[3 - ((keyAndValueByteSize + 3) % 4)]
+    // end
+    //
+    // for each mipmap_level in numberOfMipmapLevels1
+    //     UInt32 imageSize;
+    //     for each array_element in numberOfArrayElements2
+    //     for each face in numberOfFaces3
+    //         for each z_slice in pixelDepth2
+    //             for each row or row_of_blocks in pixelHeight2
+    //                 for each pixel or block_of_pixels in pixelWidth
+    //                     Byte data[format-specific-number-of-bytes]4
+    //                 end
+    //             end
+    //         end
+    //         Byte cubePadding[0-3]
+    //     end
+    //     end
+    //     Byte mipPadding[0-3]
+    // end
+
+
+    // Read keyvalue data. Will be ignoring for now
     fin.ignore(header.bytesOfKeyValueData);
 
     uint32_t imageSize;
-    uint32_t totalImageSize = fileLength -
+    uint32_t totalImageDataSize = fileLength -
             (sizeof(KTXTexHeader) + header.bytesOfKeyValueData +
-                    (sizeof(imageSize) * header.numberOfMipmapLevels));
+            (sizeof(imageSize) * header.numberOfMipmapLevels));     // TODO: paddings
 
-    unsigned char* totalImageData = new unsigned char[totalImageSize];
-    if (!totalImageData)
-        return ReadResult::INSUFFICIENT_MEMORY_TO_LOAD;
-
-    char* imageData = (char*)totalImageData;
     bool byteswapImageData = (header.glTypeSize > 1) && (header.endianness != MyEndian);
 
-    uint32_t totalOffset = 0;
-    osg::Image::MipmapDataType mipmapData;
+    std::vector<osg::Image::MipmapDataType> mipmapData(header.numberOfFaces);
+    std::vector<unsigned char*>             totalImageFaceData(header.numberOfFaces, 0);
+    std::vector<uint32_t>                   totalImageFaceOffset(header.numberOfFaces, 0);
 
-    for(uint32_t mipmapLevel = 0; mipmapLevel < header.numberOfMipmapLevels; mipmapLevel++)
+    char tempPadding[4];
+
+    for (uint32_t mipmapLevel = 0; mipmapLevel < header.numberOfMipmapLevels; mipmapLevel++)
     {
         fin.read((char*)&imageSize, sizeof(imageSize));
         if(!fin.good())
         {
             OSG_WARN << "Failed to read Image Data." << std::endl;
-            delete[] totalImageData;
+
+            for (int i = 0; i < header.numberOfFaces; i++)
+                // clean allocated data
+            {
+                if (totalImageFaceData[i])
+                    delete[] totalImageFaceData[i];
+            }
+
             return ReadResult::ERROR_IN_READING_FILE;
         }
         if (header.endianness != MyEndian)
             osg::swapBytes4(reinterpret_cast<char*>(&imageSize));
 
-        if (totalOffset + imageSize > totalImageSize) {
-            OSG_WARN << "Failed to read mipmap: " << mipmapLevel << " not enough bytes in file." << std::endl;
-            delete[] totalImageData;
-            return ReadResult::ERROR_IN_READING_FILE;
-        }
 
-        fin.read(imageData, imageSize);
-        if(!fin.good())
+        for (uint32_t face = 0; face < header.numberOfFaces; face++)
         {
-            OSG_WARN << "Failed to read Image Data." << std::endl;
-            delete[] totalImageData;
-            return ReadResult::ERROR_IN_READING_FILE;
-        }
+            uint32_t imageDataOffset = totalImageFaceOffset[face];
 
-        if (byteswapImageData)
-        {
-            char* endData = imageData + imageSize;
-            if (header.glTypeSize == 4)
+            // if (totalOffset + imageSize > totalImageSize) {
+            //     OSG_WARN << "Failed to read mipmap: " << mipmapLevel << " not enough bytes in file." << std::endl;
+            //     delete[] totalImageData;
+            //     return ReadResult::ERROR_IN_READING_FILE;
+            // }
+
+            if (totalImageFaceData[face] == 0)
             {
-                for(char* longData = imageData; longData < endData; longData += 4)
+                totalImageFaceData[face] = new unsigned char[totalImageDataSize/header.numberOfFaces];
+                if (!totalImageFaceData[face])
                 {
-                    osg::swapBytes4(longData);
+                    for (int i = 0; i < header.numberOfFaces; i++)
+                        // clean allocated data
+                    {
+                        if (totalImageFaceData[i])
+                            delete[] totalImageFaceData[i];
+                    }
+
+                    return ReadResult::INSUFFICIENT_MEMORY_TO_LOAD;
                 }
             }
-            else if (header.glTypeSize == 2)
+
+            char* imageData = (char*)(&totalImageFaceData[face][0] + imageDataOffset);
+            fin.read(imageData, imageSize);
+
+            if (!fin.good())
             {
-                for(char* shortData = imageData; shortData < endData; shortData += 2)
+                OSG_WARN << "Failed to read Image Data." << std::endl;
+
+                for (int i = 0; i < header.numberOfFaces; i++)
+                    // clean allocated data
                 {
-                    osg::swapBytes2(shortData);
+                    if (totalImageFaceData[i])
+                        delete[] totalImageFaceData[i];
+                }
+                return ReadResult::ERROR_IN_READING_FILE;
+            }
+
+            if (byteswapImageData)
+            {
+                char* endData = imageData + imageSize;
+                if (header.glTypeSize == 4)
+                {
+                    for (char* longData = imageData; longData < endData; longData += 4)
+                    {
+                        osg::swapBytes4(longData);
+                    }
+                }
+                else if (header.glTypeSize == 2)
+                {
+                    for (char* shortData = imageData; shortData < endData; shortData += 2)
+                    {
+                        osg::swapBytes2(shortData);
+                    }
                 }
             }
-        }
 
-        if(mipmapLevel > 0)
-            mipmapData.push_back(totalOffset);
+            if (mipmapLevel > 0)
+                mipmapData[face].push_back(imageDataOffset);
 
-        //move the offset to the next imageSize data
-        totalOffset += imageSize;
+            // move the offset to the next imageSize data
+            imageDataOffset += imageSize;
+            totalImageFaceOffset[face] = imageDataOffset;
 
-        // advance buffer pointer to read next mipmap level
-        imageData += imageSize;
+            // Byte cubePadding[0-3]
+            uint32_t facePadding = 3 - (imageSize + 3) % 4;
+            if (facePadding > 0)
+            {
+                fin.read(&tempPadding[0], facePadding);
+                // char* imageData = totalImageFaceData[face][imageDataOffset];
+                // imageData += facePadding;
+                // totalOffset += facePadding;
+            }
+        } // faces
 
         if (mipmapLevel < (header.numberOfMipmapLevels - 1))
         {
             uint32_t mipPadding = 3 - (imageSize + 3) % 4;
             if (mipPadding > 0)
             {
-                fin.read(imageData, mipPadding);
-                imageData += mipPadding;
-                totalOffset += mipPadding;
+                fin.read(&tempPadding[0], mipPadding);
+                for (uint32_t face = 0; face < header.numberOfFaces; face++)
+                    totalImageFaceOffset[face] += mipPadding;       // Should we really add padding here?
             }
         }
-    }
+    } // mips
 
-    osg::ref_ptr<osg::Image> image = new osg::Image;
-    if (!image.valid())
+    for (uint32_t face = 0; face < header.numberOfFaces; face++)
     {
-        delete[] totalImageData;
-        return ReadResult::INSUFFICIENT_MEMORY_TO_LOAD;
+        uint32_t glType = header.glInternalFormat == GL_R11F_G11F_B10F ? GL_UNSIGNED_INT_10F_11F_11F_REV : header.glType;   // 'cmgen' returns "wrong" type
+        osg::ref_ptr<osg::Image> image = new osg::Image;
+        image->setImage(header.pixelWidth, header.pixelHeight, header.pixelDepth,
+                        header.glInternalFormat, header.glFormat,
+                        glType, &totalImageFaceData[face][0], osg::Image::USE_NEW_DELETE);
+
+        if (header.numberOfMipmapLevels > 1)
+             image->setMipmapLevels(mipmapData[face]);
+
+        if (!textureCubeMap)
+            return image.get();
+
+        textureCubeMap->setImage(face, image.get());
     }
 
-    image->setImage(header.pixelWidth, header.pixelHeight, header.pixelDepth,
-        header.glInternalFormat, header.glFormat,
-        header.glType, totalImageData, osg::Image::USE_NEW_DELETE);
-
-    if (header.numberOfMipmapLevels > 1)
-        image->setMipmapLevels(mipmapData);
-
-    return image.get();
+    return textureCubeMap.get();
 }
 
 bool ReaderWriterKTX::writeKTXStream(const osg::Image *img, std::ostream& fout) const {
@@ -285,11 +376,11 @@ osgDB::ReaderWriter::ReadResult ReaderWriterKTX::readImage(const std::string& fi
     std::string ext = osgDB::getLowerCaseFileExtension(file);
     if(!acceptsExtension(ext))
         return ReadResult::FILE_NOT_HANDLED;
-        
+
     std::string fileName = osgDB::findDataFile(file, options);
     if(fileName.empty())
         return ReadResult::FILE_NOT_FOUND;
-        
+
     std::ifstream istream(fileName.c_str(), std::ios::in | std::ios::binary);
     if(!istream)
         return ReadResult::ERROR_IN_READING_FILE;

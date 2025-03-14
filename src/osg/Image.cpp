@@ -36,6 +36,10 @@
 using namespace osg;
 using namespace std;
 
+#ifndef GL_UNSIGNED_INT_10F_11F_11F_REV
+#   define GL_UNSIGNED_INT_10F_11F_11F_REV 0x8C3B
+#endif
+
 void Image::UpdateCallback::operator () (osg::StateAttribute* attr, osg::NodeVisitor* nv)
 {
     osg::Texture* texture = attr ? attr->asTexture() : 0;
@@ -330,7 +334,8 @@ bool Image::isPackedType(GLenum type)
         case(GL_UNSIGNED_INT_8_8_8_8):
         case(GL_UNSIGNED_INT_8_8_8_8_REV):
         case(GL_UNSIGNED_INT_10_10_10_2):
-        case(GL_UNSIGNED_INT_2_10_10_10_REV): return true;
+        case(GL_UNSIGNED_INT_2_10_10_10_REV):
+        case(GL_UNSIGNED_INT_10F_11F_11F_REV): return true;
         default: return false;
     }
 }
@@ -868,7 +873,8 @@ unsigned int Image::computePixelSizeInBits(GLenum format,GLenum type)
         case(GL_UNSIGNED_INT_8_8_8_8):
         case(GL_UNSIGNED_INT_8_8_8_8_REV):
         case(GL_UNSIGNED_INT_10_10_10_2):
-        case(GL_UNSIGNED_INT_2_10_10_10_REV): return 32;
+        case(GL_UNSIGNED_INT_2_10_10_10_REV):
+        case(GL_UNSIGNED_INT_10F_11F_11F_REV): return 32;
         default:
         {
             OSG_WARN<<"error type = "<<type<<std::endl;
@@ -2112,6 +2118,7 @@ bool Image::isImageTranslucent() const
                                                         0xc0000000u, 1))
                         return true;
                     break;
+                // TODO: GL_UNSIGNED_INT_10F_11F_11F_REV case
                 case(GL_HALF_FLOAT):
                     if (_findLowerAlphaValueInRow(s(), (unsigned short*)d + offset,
                                                   (unsigned short)0x3c00, delta))
