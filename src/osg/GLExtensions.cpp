@@ -52,6 +52,9 @@
 #elif defined(__EMSCRIPTEN__)
     // Emscripten ships EGL, which we use to get OpenGL function addresses.
     #include <EGL/egl.h>
+#elif defined(__AURORAOS__)
+	#define EGL_NO_X11
+    #include <EGL/egl.h>
 #else
     #include <dlfcn.h>
 #endif
@@ -395,7 +398,11 @@ OSG_INIT_SINGLETON_PROXY(GLExtensionDisableStringInitializationProxy, osg::getGL
 
     #elif defined (__linux__)
 
-        return dlsym(0, funcName);
+        #if defined(__AURORAOS__)
+            return convertPointerType<void*, __eglMustCastToProperFunctionPointerType>(eglGetProcAddress(funcName));
+        #else
+            return dlsym(0, funcName);
+		#endif
 
     #elif defined (__QNX__)
 
