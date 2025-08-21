@@ -809,6 +809,13 @@ void Renderer::draw()
 
         if (acquireGPUStats)
         {
+#if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+            // NOTE: Without a glFlush call or an equivalent synchronization mechanism (like a fence), there's no guarantee
+            // that the FBO's rendering commands will be completed before glEndQuery is called.
+            // This can lead to glEndQuery operating on partially rendered data, resulting in unexpected results or rendering artifacts.
+            // Mobile tile-based rendering on some GPUs like Mali G72 will be fixed with glFlush call in this place.
+            glFlush();
+#endif
             _querySupport->endQuery(state);
             _querySupport->checkQuery(stats, state, _startTick);
         }
