@@ -548,6 +548,7 @@ class OSG_EXPORT GLExtensions : public osg::Referenced
         bool isTextureRGSupported;
         bool isTextureFloatLinearSupported;
         bool isTextureHalfFloatLinearSupported;
+        bool isYUVtargetSupported;
 
         bool isTexStorage2DSupported() const { return glTexStorage2D != 0; }
         bool isCompressedTexImage2DSupported() const { return glCompressedTexImage2D!=0; }
@@ -603,6 +604,13 @@ class OSG_EXPORT GLExtensions : public osg::Referenced
         GLint maxLayerCount;
         GLint max2DSize;
 
+        // EGL Image
+        bool isEGLImageSupported;
+        bool isEGLImageExternalSupported;
+
+        typedef void *GLeglImageOES;	// in osg namespace
+        void (GL_APIENTRY * glEGLImageTargetTexture2D) (GLenum target, GLeglImageOES image);
+        void (GL_APIENTRY * glEGLImageTargetRenderbufferStorage) (GLenum target, GLeglImageOES image);
 
         // Blending
         bool isBlendColorSupported;

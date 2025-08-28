@@ -941,10 +941,11 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
 
 
     // TODO: improve for OSG_GL2_FEATURES
-    isTextureRGSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_EXT_texture_rg", "ARB_texture_rg"));
+    isTextureRGSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_EXT_texture_rg", "GL_ARB_texture_rg"));
     isTextureFloatLinearSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_OES_texture_float_linear"));
     isTextureHalfFloatLinearSupported = validContext && (OSG_GL3_FEATURES || isGLExtensionSupported(contextID, "GL_OES_texture_half_float_linear"));
 
+    isYUVtargetSupported = validContext && ((OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && isGLExtensionSupported(contextID, "GL_EXT_YUV_target"));
 
     setGLExtensionFuncPtr(glTexStorage1D,"glTexStorage1D","glTexStorage1DARB", validContext);
     setGLExtensionFuncPtr(glTextureStorage1D,"glTextureStorage1D","glTextureStorage1DARB", validContext);
@@ -1013,6 +1014,13 @@ GLExtensions::GLExtensions(unsigned int in_contextID):
     setGLExtensionFuncPtr(glUniformHandleuiv64,      "glUniformHandleuiv64","glUniformHandleuiv64ARB", "glUniformHandleuiv64NV", validContext);
     setGLExtensionFuncPtr(glProgramUniformHandleui64,      "glProgramUniformHandleui64","glProgramUniformHandleui64ARB", "glProgramUniformHandleui64NV", validContext);
     setGLExtensionFuncPtr(glProgramUniformHandleuiv64,      "glProgramUniformHandleuiv64","glProgramUniformHandleuiv64ARB", "glProgramUniformHandleuiv64NV", validContext);
+
+
+    // EGL Image
+    isEGLImageSupported = validContext && (OSG_GLES1_FEATURES || OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && isGLExtensionSupported(contextID, "GL_OES_EGL_image");
+    isEGLImageExternalSupported = validContext && (OSG_GLES1_FEATURES || OSG_GLES2_FEATURES || OSG_GLES3_FEATURES) && isGLExtensionSupported(contextID, "GL_OES_EGL_image_external");
+    setGLExtensionFuncPtr(glEGLImageTargetTexture2D,           "glEGLImageTargetTexture2DOES", validContext);
+    setGLExtensionFuncPtr(glEGLImageTargetRenderbufferStorage, "glEGLImageTargetRenderbufferStorageOES", validContext);
 
 
     // Blending
