@@ -701,8 +701,10 @@ int Thread::start() {
 
     if(status == 0)
     {
+#ifndef __EMSCRIPTEN__
         // wait till the thread has actually started.
         pd->threadStartedBlock.block();
+#endif
 
         pd->idSet = true;
     }
