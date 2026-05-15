@@ -38,8 +38,15 @@ using namespace obj;
 static std::string strip( const std::string& ss )
 {
     std::string result;
+#if __cplusplus >= 201703L
+    // c++17 and later
+    result.assign( std::find_if( ss.begin(), ss.end(), std::not_fn(static_cast<int(*)(int)>(std::isspace)) ),
+                   std::find_if( ss.rbegin(), ss.rend(), std::not_fn(static_cast<int(*)(int)>(std::isspace)) ).base() );
+
+#else
     result.assign( std::find_if( ss.begin(), ss.end(), std::not1( std::ptr_fun< int, int >( isspace ) ) ),
                    std::find_if( ss.rbegin(), ss.rend(), std::not1( std::ptr_fun< int, int >( isspace ) ) ).base() );
+#endif
     return( result );
 }
 
