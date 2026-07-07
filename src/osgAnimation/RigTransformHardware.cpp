@@ -152,6 +152,12 @@ unsigned int createVertexAttribList(const PerVertexInfList & perVertexInfluences
 
 bool RigTransformHardware::prepareData(RigGeometry& rig)
 {
+    if (!rig.getInfluenceMap())
+    {
+        OSG_WARN << "RigTransformHardware::prepareData: Bad influence map"  << std::endl;
+        return false;
+    }
+
     _nbVertices = rig.getSourceGeometry()->getVertexArray()->getNumElements();
     const VertexInfluenceMap &vertexInfluenceMap = *rig.getInfluenceMap();
     _perVertexInfluences.reserve(_nbVertices);
@@ -188,6 +194,11 @@ bool RigTransformHardware::prepareData(RigGeometry& rig)
 
 bool RigTransformHardware::buildPalette(const BoneMap& boneMap, const RigGeometry& rig)
 {
+    if (!rig.getInfluenceMap())
+    {
+        OSG_WARN << "RigTransformHardware: Bad influence map" << std::endl;
+        return false;
+    }
 
     typedef std::map<std::string, int> BoneNameCountMap;
     _boneWeightAttribArrays.resize(0);

@@ -103,6 +103,9 @@ void RigTransformSoftware::buildMinimumUpdateSet( const RigGeometry&rig )
 
 bool RigTransformSoftware::prepareData(RigGeometry&rig)
 {
+    if (!rig.getInfluenceMap())
+        return false;
+
     ///set geom as it source
     if (rig.getSourceGeometry())
         rig.copyFrom(*rig.getSourceGeometry());
@@ -145,7 +148,7 @@ bool RigTransformSoftware::init(RigGeometry&rig)
         return false;
     }
 
-    if(!rig.getSkeleton())
+    if(!rig.getSkeleton() || !rig.getInfluenceMap())
         return false;
     
     ///get bonemap from skeleton

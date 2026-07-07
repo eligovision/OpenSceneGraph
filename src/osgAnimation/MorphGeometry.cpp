@@ -12,7 +12,6 @@
  * OpenSceneGraph Public License for more details.
  */
 
-#include <osg/Geode>
 #include <osgAnimation/MorphGeometry>
 #include <osgAnimation/RigGeometry>
 
@@ -76,30 +75,25 @@ void UpdateMorph::operator()(osg::Node* node, osg::NodeVisitor* nv)
 {
     if (nv && nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR)
     {
-        osg::Geode* geode = dynamic_cast<osg::Geode*>(node);
-        if (geode)
+        osg::Geometry* geom = node->asGeometry();
+        if (geom)
         {
-            unsigned int numDrawables = geode->getNumDrawables();
-            for (unsigned int i = 0; i != numDrawables; ++i)
-            {
-                osg::Drawable *drw = geode->getDrawable(i);
-                osgAnimation::RigGeometry *rig = dynamic_cast<osgAnimation::RigGeometry*>(drw);
-                if(rig && rig->getSourceGeometry())
-                    drw = rig->getSourceGeometry();
+            osgAnimation::RigGeometry *rig = dynamic_cast<osgAnimation::RigGeometry*>(geom);
+            if (rig && rig->getSourceGeometry())
+                geom = rig->getSourceGeometry();
 
-                osgAnimation::MorphGeometry* morph = dynamic_cast<osgAnimation::MorphGeometry*>(drw);
-                if (morph)
+            osgAnimation::MorphGeometry* morph = dynamic_cast<osgAnimation::MorphGeometry*>(geom);
+            if (morph)
+            {
+                // Update morph weights
+                std::map<int, osg::ref_ptr<osgAnimation::FloatTarget> >::iterator iter = _weightTargets.begin();
+                while (iter != _weightTargets.end())
                 {
-                    // Update morph weights
-                    std::map<int, osg::ref_ptr<osgAnimation::FloatTarget> >::iterator iter = _weightTargets.begin();
-                    while (iter != _weightTargets.end())
+                    if (iter->second->getValue() >= 0)
                     {
-                        if (iter->second->getValue() >= 0)
-                        {
-                            morph->setWeight(iter->first, iter->second->getValue());
-                        }
-                        ++iter;
+                        morph->setWeight(iter->first, iter->second->getValue());
                     }
+                    ++iter;
                 }
             }
         }
@@ -134,6 +128,7 @@ bool UpdateMorph::link(osgAnimation::Channel* channel)
         {
             ft = new osgAnimation::FloatTarget;
             _weightTargets[weightIndex] = ft;
+
         }
         return channel->setTarget(ft);
     }
